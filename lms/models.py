@@ -6,7 +6,7 @@ User = get_user_model()
 
 
 class Course(models.Model):
-    course_name = models.CharField(
+    title = models.CharField(
         max_length=200, verbose_name="Курс", help_text="Введите название курса"
     )
     price = models.DecimalField(
@@ -17,7 +17,7 @@ class Course(models.Model):
         default=0.00,
     )
     preview = models.ImageField(
-        upload_to="study/previews",
+        upload_to="lms/images",
         blank=True,
         null=True,
         verbose_name="Картинка",
@@ -35,38 +35,42 @@ class Course(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="courses",
-        verbose_name="Владелец",
+        verbose_name="Автор курса",
+        null=True,
+        blank=True,
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.course_name
+        return self.title
 
     class Meta:
         verbose_name = "Курс"
         verbose_name_plural = "Курсы"
 
 
-class Lesson(models.Model):
-    lesson_name = models.CharField(
-        max_length=250, verbose_name="Урок", help_text="Введите название урока"
+class Material(models.Model):
+    title = models.CharField(
+        max_length=250, verbose_name="Материал", help_text="Введите название материала"
     )
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        verbose_name="Цена урока",
-        help_text="Укажите стоимость урока в рублях",
+        verbose_name="Цена материала",
+        help_text="Укажите стоимость материала в рублях",
         default=0.00,
     )
-    lesson_description = models.TextField(
-        verbose_name="Описание урока", help_text="Расскажите об уроке"
+    content = models.TextField(
+        verbose_name="Содержание материала", help_text="Разместите текст или ссылку на файл"
     )
 
-    preview_l = models.ImageField(
-        upload_to="study/preview_l",
+    illustration = models.ImageField(
+        upload_to="lms/illustrations",
         blank=True,
         null=True,
-        verbose_name="Картинка",
-        help_text="Загрузите картинку урока",
+        verbose_name="Иллюстрация",
+        help_text="Загрузите иллюстрацию к материалу",
     )
 
     video_link = models.TextField(
@@ -78,48 +82,50 @@ class Lesson(models.Model):
 
     course = models.ForeignKey(
         Course,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         verbose_name="Курс",
         help_text="Укажите курс",
-        related_name="lessons",
+        related_name="materials",
     )
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="lessons",
-        verbose_name="Владелец",
+        related_name="materials",
+        verbose_name="Автор материала",
+        null=True,
+        blank=True
+
     )
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Урок"
-        verbose_name_plural = "Уроки"
+        verbose_name = "Материал"
+        verbose_name_plural = "Материалы"
         ordering = ["id"]
 
+    def __str__(self):
+        return self.title
 
-class Subscription(models.Model):
-    user_sub = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="subscriptions",
-        verbose_name="Пользователь",
-    )
-    course = models.ForeignKey(
-        "Course",
-        on_delete=models.CASCADE,
-        related_name="subscriptions",
-        verbose_name="Курс",
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name="Дата подписки")
-
-    class Meta:
-        unique_together = ("user_sub", "course")
-        verbose_name = "Подписка"
-        verbose_name_plural = "Подписки"
+class Test(models.Model):
+    material = models.OneToOneField(Material, on_delete=models.CASCADE, related_name='test')
+    questions = models.JSONField()  # Структура: [{"question": "Текст?", "answers": ["A", "B", "C"], "correct": "A"}]
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)  # Преподаватель
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user_sub} подписан на {self.course}"
+        return f"Test for {self.material.title}"
+
+
+class TestResult(models.Model):  # Результаты прохождения тестов
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='test_results', null=True, blank=True)
+    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='results')
+    answers = models.JSONField()  # Ответы пользователя: {"question1": "A", ...}
+    score = models.FloatField()  # Процент правильных (0-100)
+    passed = models.BooleanField(default=False)  # Пройден ли
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.test.material.title}: {self.score}%"
