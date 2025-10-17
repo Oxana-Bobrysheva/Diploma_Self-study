@@ -204,5 +204,3 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.user_sub} подписан на {self.course}"
-
-    test
