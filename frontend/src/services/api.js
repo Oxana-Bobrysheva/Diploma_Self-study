@@ -1,0 +1,34 @@
+import axios from 'axios';
+
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Auth endpoints (existing)
+export const loginUser = (data) => api.post('/token/', data);
+export const refreshToken = (data) => api.post('/token/refresh/', data);
+export const registerUser = (data) => api.post('/register/', data);
+
+// LMS endpoints (new)
+export const getCourses = () => api.get('/courses/');
+export const getCourseDetails = (courseId) => api.get(`/courses/${courseId}/`);
+export const getMaterials = (courseId) => api.get(`/courses/${courseId}/materials/`);
+export const getMaterialDetails = (materialId) => api.get(`/materials/${materialId}/`);
+export const getTests = (courseId) => api.get(`/courses/${courseId}/tests/`);
+export const getTestDetails = (testId) => api.get(`/tests/${testId}/`);
+export const submitTestResult = (data) => api.post('/test-results/', data);
+
+export default api;
