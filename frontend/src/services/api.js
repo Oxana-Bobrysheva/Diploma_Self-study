@@ -17,10 +17,18 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Auth endpoints (existing)
-export const loginUser = (data) => api.post('/token/', data);
+// Auth endpoints
+export const loginUser = (formData) => {
+  const loginData = {
+    email: formData.email,
+    password: formData.password
+  };
+  console.log('API sending payload:', loginData);
+  return api.post('/token/', loginData);
+};
+
 export const refreshToken = (data) => api.post('/token/refresh/', data);
-export const registerUser = (data) => api.post('/register/', data);
+export const registerUser = (data) => api.post('/users/register/', data);
 
 // LMS endpoints (new)
 export const getCourses = () => api.get('/courses/');

@@ -11,6 +11,7 @@ class UserManager(BaseUserManager):
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
+        user.username = email
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -70,7 +71,13 @@ class User(AbstractUser):
     )
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []  # Пусто, так как username не required при регистрации
+    REQUIRED_FIELDS = []
+
+    object = UserManager()
+
+    def save(self, *args, **kwargs):
+        self.username = self.email
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Пользователь"

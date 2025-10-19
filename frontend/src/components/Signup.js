@@ -14,6 +14,7 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      localStorage.removeItem('access_token');
       await registerUser(formData);
       navigate('/login');
     } catch (err) {

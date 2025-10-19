@@ -16,7 +16,7 @@ urlpatterns = [
     path('', home),
     path('admin/', admin.site.urls),
     path('api/', include('lms.urls')),
-    path('api/', include('users.urls')),
+    path('api/users/', include('users.urls')),
     path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
