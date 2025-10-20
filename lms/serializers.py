@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Course, Material, Test, TestResult
+from .models import Course, Material, Test, TestResult, Enrollment
+
 
 class MaterialSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,7 +18,16 @@ class TestResultSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CourseSerializer(serializers.ModelSerializer):
+    materials = MaterialSerializer(many=True, read_only=True)
+
     class Meta:
         model = Course
         fields = '__all__'
-        materials = MaterialSerializer(many=True, read_only=True)
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    course = CourseSerializer(read_only=True)
+
+    class Meta:
+        model = Enrollment
+        fields = ['id', 'user', 'course', 'enrolled_at']
+        read_only_fields = ['user', 'enrolled_at']

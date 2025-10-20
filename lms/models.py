@@ -129,3 +129,35 @@ class TestResult(models.Model):  # Результаты прохождения �
 
     def __str__(self):
         return f"{self.user.username} - {self.test.material.title}: {self.score}%"
+
+
+class Enrollment(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+        verbose_name="Студент",
+        help_text="Пользователь, записавшийся на курс",
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+        verbose_name="Курс",
+        help_text="Курс, на который записан пользователь",
+    )
+    enrolled_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата записи",
+        help_text="Когда пользователь записался",
+    )
+
+    class Meta:
+        unique_together = ('user', 'course')  # Предотвращает повторные записи
+        verbose_name = "Запись на курс"
+        verbose_name_plural = "Записи на курсы"
+        ordering = ["-enrolled_at"]
+
+    def __str__(self):
+        return f"{self.user.email} записан на {self.course.title}"
+
