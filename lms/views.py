@@ -110,3 +110,22 @@ class EnrollCourseView(APIView):
                 )
         except Course.DoesNotExist:
             return Response({"error": "Курс не найден."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class SubmitTestView(APIView):
+    permission_classes = [IsAuthenticated, IsStudentOrSubscribed]
+
+    def post(self, request, test_id):
+        try:
+            test = Test.objects.get(id=test_id)
+            # Check if user is enrolled in the course
+            if not Enrollment.objects.filter(user=request.user, course=test.material.course).exists():
+                return Response({"error": "Not enrolled in this course."}, status=403)
+            answers = request.data.get('answers', {})
+            # Validate and score (implement logic here)
+            score = calculate_score(test.questions, answers)
+            passed = score >= 70  # Example threshold
+            TestResult.objects.create(user=request.user, test=test, answers=answers, score=score, passed=passed)
+            return Response({"score": score, "passed": passed}, status=201)
+        except Test.DoesNotExist:
+            return Response({"error": "Test not found."}, status=404)
