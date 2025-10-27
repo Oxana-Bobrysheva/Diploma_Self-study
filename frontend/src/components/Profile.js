@@ -6,42 +6,42 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', city: '' });
   const [error, setError] = useState('');
-  // New: State for courses
+  // State for courses (role-based)
   const [courses, setCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [coursesError, setCoursesError] = useState('');
 
   const fetchProfile = useCallback(async () => {
-  const token = localStorage.getItem('access_token');
-  if (!token) {
-    setError('No access token found. Please log in.');
-    return;
-  }
-  try {
-    const response = await api.get('/users/profiles/me/', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setProfile(response.data);
-    setFormData(response.data);
-    setError('');
-  } catch (err) {
-    if (err.response?.status === 401) {
-      setError('Session expired. Please log in again.');
-      // Optional: Clear tokens and redirect to login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      window.location.href = '/login';
-    } else {
-      setError('Failed to fetch profile.');
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setError('No access token found. Please log in.');
+      return;
     }
-  }
-}, []);
+    try {
+      const response = await api.get('/users/profiles/me/', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProfile(response.data);
+      setFormData(response.data);
+      setError('');
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+      } else {
+        setError('Failed to fetch profile.');
+      }
+    }
+  }, []);
+
 
   // New: Fetch courses function
   const fetchCourses = useCallback(async () => {
     try {
-      const response = await api.get('/courses/');  // Uses your api.js getCourses logic
-      setCourses(response.data);
+      const response = await api.get('/courses/my/');  // Uses your api.js getCourses logic
+      setCourses(response.data.courses || []);
       setCoursesError('');
     } catch (err) {
       setCoursesError('Failed to load courses.');

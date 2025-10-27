@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+const API_BASE_URL = 'http://127.0.0.1:8000/api/';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -33,6 +33,7 @@ export const registerUser = (data) => api.post('/users/register/', data);
 // LMS endpoints (new)
 export const getCourses = () => api.get('/courses/');
 export const getCourseDetails = (courseId) => api.get(`/courses/${courseId}/`);
+export const getMyCourses = () => api.get('/courses/my/');
 export const getMaterials = (courseId) => api.get(`/courses/${courseId}/materials/`);
 export const getMaterialDetails = (materialId) => api.get(`/materials/${materialId}/`);
 export const getTests = (courseId) => api.get(`/courses/${courseId}/tests/`);

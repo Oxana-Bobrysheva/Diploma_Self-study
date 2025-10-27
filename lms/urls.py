@@ -10,7 +10,7 @@ router.register(r'tests', views.TestViewSet)
 router.register(r'test-results', views.TestResultViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('courses/my/', MyCoursesView.as_view(), name='my-courses'),
     path('courses/<int:course_id>/enroll/', EnrollCourseView.as_view(), name='enroll-course'),
+    path('', include(router.urls)),
 ]

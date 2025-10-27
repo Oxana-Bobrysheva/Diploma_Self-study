@@ -60,20 +60,22 @@ class MyCoursesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        role = request.user.role  # Directly from your custom User model
+        role = request.user.role
 
         if role == 'teacher':
-            # For teachers: Owned courses (with materials for completeness)
             courses = Course.objects.filter(owner=request.user).prefetch_related('materials')
+            print("Teacher courses found:", courses.count())
             serializer = CourseSerializer(courses, many=True)
             return Response(
                 {"role": "teacher", "courses": serializer.data},
                 status=status.HTTP_200_OK
             )
         else:
-            # For students (or admins defaulting to student view): Enrolled courses (with materials)
-            enrollments = Enrollment.objects.filter(user=request.user).select_related('course').prefetch_related('course__materials')
+            enrollments = Enrollment.objects.filter(user=request.user).select_related('course').prefetch_related(
+                'course__materials')
+            print("Student enrollments found:", enrollments.count())
             courses = [enrollment.course for enrollment in enrollments]
+            print("Student courses found:", len(courses))
             serializer = CourseSerializer(courses, many=True)
             return Response(
                 {"role": "student", "courses": serializer.data},

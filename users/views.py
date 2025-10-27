@@ -1,6 +1,10 @@
+import json
+
+from django.http import JsonResponse
 from rest_framework import viewsets, permissions
 from django.contrib.auth import get_user_model
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
+from rest_framework.permissions import AllowAny
 
 from .models import Payment, Subscription
 from .serializers import UserSerializer, PaymentSerializer, SubscriptionSerializer
@@ -80,15 +84,36 @@ class RegisterView(APIView):
         print("Serializer errors:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+@permission_classes([AllowAny])
 class LoginView(APIView):
     def post(self, request):
+        print("=== LOGIN DEBUG ===")
+        print("Request method:", request.method)
+        print("Content-Type:", request.META.get('CONTENT_TYPE'))
+        print("Request body:", request.body)  # Raw bytes—check if JSON is there
+        print("User authenticated?", request.user.is_authenticated)  # Should be False
+
+        # Use DRF's request.data for consistency (it parses JSON automatically)
         email = request.data.get('email')
         password = request.data.get('password')
-        user = authenticate(email=email, password=password)
-        if user:
-            # Use the custom JWT serializer/view for token
-            from .serializers import CustomTokenObtainPairSerializer
+        print("Extracted email:", email)
+        print("Password provided?", bool(password))  # Don't log password for security
+
+        if not email or not password:
+            return Response({'error': 'Email and password required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = authenticate(request, email=email, password=password)  # Added 'request' for completeness
+        print("User found?", user is not None)
+        if user is not None:
+            # Use your custom serializer for token
             serializer = CustomTokenObtainPairSerializer(data=request.data)
             if serializer.is_valid():
+                print("Serializer valid, returning token")
                 return Response(serializer.validated_data, status=status.HTTP_200_OK)
-        return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            else:
+                print("Serializer errors:", serializer.errors)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            print("Authentication failed")
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
