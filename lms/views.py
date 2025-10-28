@@ -8,13 +8,19 @@ from .serializers import CourseSerializer, MaterialSerializer, TestSerializer, T
 from .permissions import IsTeacherOrAdmin, IsOwnerOrAdmin, IsStudentOrSubscribed
 
 class CourseViewSet(viewsets.ModelViewSet):
-    queryset = Course.objects.all()
+    queryset = Course.objects.prefetch_related('materials').all()
     serializer_class = CourseSerializer
 
     def get_permissions(self):
+        if self.action == 'list':
+            return [permissions.AllowAny()]
+
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), IsTeacherOrAdmin(), IsOwnerOrAdmin()]
-        return [permissions.IsAuthenticated(), IsStudentOrSubscribed()]  # Students can view subscribed
+        elif self.action == 'retrieve':
+            return [permissions.IsAuthenticated(), IsOwnerOrAdmin()]
+        return [permissions.IsAuthenticated(),
+                IsStudentOrSubscribed()]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)  # Auto-set owner to current user

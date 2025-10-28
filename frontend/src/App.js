@@ -7,6 +7,8 @@ import CourseList from './components/CourseList';
 import MaterialViewer from './components/MaterialViewer';
 import TestForm from './components/TestForm';
 import Profile from './components/Profile';
+import CourseDetail from './components/CourseDetail';
+import TeachersList from './components/TeachersList';
 
 function App() {
   return (
@@ -16,11 +18,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/teachers" element={<TeachersList />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/courses" element={<CourseList />} />
+          <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/course/:courseId/materials" element={<MaterialViewer />} />
           <Route path="/course/:courseId/tests" element={<TestForm />} />
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Dashboard />} />  {/* Ensure this is set to Dashboard */}
         </Routes>
       </div>
     </Router>

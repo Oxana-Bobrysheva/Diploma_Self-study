@@ -24,7 +24,7 @@ User = get_user_model()
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
@@ -32,6 +32,16 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.request.user.role == 'admin':
             return self.queryset
         return self.queryset.filter(id=self.request.user.id)
+
+    @action(detail=False, methods=['get'], url_path='authors-count', permission_classes=[])
+    def authors_count(self, request):
+        """
+        Public endpoint to get total number of authors.
+        URL: /api/users/authors-count/
+        No authentication required.
+        """
+        count = self.queryset.filter(role='teacher').count()
+        return Response({'count': count}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get', 'put', 'patch'], url_path='me')
     def me(self, request):
@@ -46,6 +56,25 @@ class UserViewSet(viewsets.ModelViewSet):
         # GET request
         serializer = self.get_serializer(user)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='teachers', permission_classes=[AllowAny])
+    def teachers(self, request):
+        # Get all users with role='teacher'
+        teachers = User.objects.filter(role='teacher').prefetch_related('courses')
+
+        data = []
+        for teacher in teachers:
+            data.append({
+                'id': teacher.id,
+                'name': teacher.name,
+                'avatar': teacher.avatar.url if teacher.avatar else None,
+                'courses': [
+                    {'id': course.id, 'title': course.title}
+                    for course in teacher.courses.all()
+                ]
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()

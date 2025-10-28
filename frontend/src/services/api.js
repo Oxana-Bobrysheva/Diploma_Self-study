@@ -28,7 +28,7 @@ export const loginUser = (formData) => {
 };
 
 export const refreshToken = (data) => api.post('/token/refresh/', data);
-export const registerUser = (data) => api.post('/users/register/', data);
+export const registerUser = (data) => api.post('/users/signup/', data);
 
 // LMS endpoints (new)
 export const getCourses = () => api.get('/courses/');

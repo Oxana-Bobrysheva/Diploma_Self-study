@@ -9,7 +9,12 @@ router.register(r'subscriptions', views.SubscriptionViewSet)
 router.register(r'profiles', views.UserViewSet, basename='profile')
 
 urlpatterns = [
-    path('/register/', views.RegisterView.as_view(), name='register'),
+    path('signup/', views.RegisterView.as_view(), name='signup'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path(
+        'teachers/',
+        views.UserViewSet.as_view({'get': 'teachers'}),
+        name='teachers'
+    ),
     path('', include(router.urls)),
-    path('/login/', views.LoginView.as_view(), name='login'),
 ]
