@@ -107,7 +107,7 @@ useEffect(() => {
                         </li>
                         <li>
                             <Link
-                                to="/authors"
+                                to="/teachers"
                                 style={buttonStyle}
                                 onMouseEnter={handleMouseEnter}
                                 onMouseLeave={handleMouseLeave}

@@ -85,3 +85,21 @@ code {
     padding: 12px;
   }
 }
+.title-courses {
+  text-align: center;
+  margin-bottom: 20px; /* отступ под заголовком */
+  font-size: 24px; /* размер шрифта по желанию */
+  color: #333; /* цвет текста */
+}
+.btn-home {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+}
+.courses-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center; /* выравнивание по центру */
+  gap: 20px; /* расстояние между карточками */
+}

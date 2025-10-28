@@ -8,6 +8,7 @@ const CourseList = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // Helper function to truncate text
   const truncateDescription = (text, maxWords = 20) => {
     if (!text) return '';
     const words = text.split(' ');
@@ -17,69 +18,60 @@ const CourseList = () => {
     return words.slice(0, maxWords).join(' ') + '...';
   };
 
+  // Fetch courses (public, no auth)
   const fetchCourses = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Create a FRESH axios instance JUST for this public call - no auth pollution
+      // Create fresh axios instance (no auth headers)
       const publicAxios = axios.create({
         baseURL: 'http://localhost:8000/api/',
         timeout: 5000,
       });
 
-      // Explicitly override to ensure NO Authorization header
       const config = {
         headers: {
           'Content-Type': 'application/json',
-          // NO 'Authorization' here - forces anonymous
         },
-        withCredentials: false,  // No cookies/sessions
+        withCredentials: false,
       };
 
-      console.log('Making PUBLIC request with config:', config);  // Debug: Check no auth
+      console.log('Making PUBLIC request with config:', config);
 
       const response = await publicAxios.get('courses/', config);
 
       console.log('SUCCESS - Full Public API Response:', response.data);
-      console.log('Request Headers Sent:', response.config.headers);  // Verify no Authorization
+      console.log('Request Headers Sent:', response.config.headers);
 
       setCourses(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      console.error('FULL ERROR DETAILS:', err);  // Log everything for debugging
+      console.error('FULL ERROR DETAILS:', err);
       console.error('Response Status:', err.response?.status);
       console.error('Response Data:', err.response?.data);
-      console.error('Request Config/Headers:', err.config?.headers);  // This will show if token was sent!
+      console.error('Request Config/Headers:', err.config?.headers);
 
       if (err.response?.status === 401 || err.response?.status === 403) {
-        setError(`Auth error (401/403) - Token interference detected! Clear localStorage and retry.`);
+        setError('Auth error (401/403) - Token interference detected! Clear localStorage and retry.');
       } else if (err.code === 'ECONNABORTED') {
         setError('Request timed out - Check if backend is running.');
       } else {
         setError(`Failed to load courses: ${err.message}`);
       }
-      setCourses([]);  // Empty on error to avoid map crashes
+      setCourses([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Clear any potential stale token before fetch (temporary debug step)
+    // Clear potential stale token (debug step)
     if (localStorage.getItem('token')) {
       console.log('Clearing stale token for public test...');
       localStorage.removeItem('token');
     }
     fetchCourses();
   }, []);
-
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '50px', fontSize: '18px' }}>
-        Loading courses... ⏳
-      </div>
-    );
-  }
 
   return (
     <div style={{
@@ -90,6 +82,23 @@ const CourseList = () => {
       flexDirection: 'column',
       alignItems: 'center'
     }}>
+      {/* Back to Dashboard Button (top) */}
+      <button
+        onClick={() => navigate('/dashboard')}
+        style={{
+          background: '#28a745',
+          color: 'white',
+          border: 'none',
+          padding: '12px 24px',
+          borderRadius: '5px',
+          cursor: 'pointer',
+          alignSelf: 'centre',
+          marginBottom: '20px'
+        }}
+      >
+        На главную
+      </button>
+
       <div style={{ maxWidth: '1200px', width: '100%' }}>
         <h1 style={{ color: 'green', textAlign: 'center', marginBottom: '10px' }}>
           Ознакомьтесь с нашими курсами
@@ -98,6 +107,7 @@ const CourseList = () => {
           Get acquainted with our courses below.
         </p>
 
+        {/* Error Message */}
         {error && (
           <div style={{
             color: 'yellow',
@@ -113,11 +123,22 @@ const CourseList = () => {
           </div>
         )}
 
-        {courses.length === 0 && !loading ? (
+        {/* Loading State */}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '50px', fontSize: '18px' }}>
+            Loading courses... ⏳
+          </div>
+        )}
+
+        {/* No Courses (when not loading) */}
+        {!loading && courses.length === 0 && (
           <p style={{ textAlign: 'center', color: 'white' }}>
             No courses available yet. {error ? '' : '(Backend might be empty—add some data!)'}
           </p>
-        ) : (
+        )}
+
+        {/* Course Grid (when data exists) */}
+        {!loading && courses.length > 0 && (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
@@ -125,25 +146,30 @@ const CourseList = () => {
             marginBottom: '30px'
           }}>
             {courses.map((course) => (
-              <div key={course.id} style={{
-                background: 'white',
-                padding: '20px',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                textAlign: 'center'
-              }}>
-                <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>{course.title}</h3>
-                {/* UPDATE: Change this <p> line to use the truncation function.
-                    It now shows only ~50 words + "..." for uniformity. Full description is in details. */}
-                <p style={{
-                  color: '#666',
-                  margin: '0 0 10px 0',
-                  lineHeight: '1.4',  // Better readability
-                  display: '-webkit-box',  // Optional: Limits to 3 lines visually
-                  WebkitLineClamp: 7,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}>
+              <div
+                key={course.id}
+                style={{
+                  background: 'white',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  textAlign: 'center'
+                }}
+              >
+                <h3 style={{ margin: '0 0 10px 0', color: '#333' }}>
+                  {course.title}
+                </h3>
+                <p
+                  style={{
+                    color: '#666',
+                    margin: '0 0 10px 0',
+                    lineHeight: '1.4',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 7,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}
+                >
                   {truncateDescription(course.description)}
                 </p>
                 <p style={{ color: '#007bff', fontWeight: 'bold' }}>
@@ -167,21 +193,6 @@ const CourseList = () => {
             ))}
           </div>
         )}
-
-        <button
-          onClick={() => navigate('/dashboard')}
-          style={{
-            background: '#28a745',
-            color: 'white',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            alignSelf: 'center'
-          }}
-        >
-          На главную
-        </button>
       </div>
     </div>
   );
