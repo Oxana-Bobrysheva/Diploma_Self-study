@@ -5,6 +5,7 @@ from .models import Payment, Subscription
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 User = get_user_model()
 
+
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])  # Add for registration
     password_confirm = serializers.CharField(write_only=True, required=False)  # Optional: For confirmation
@@ -64,3 +65,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         else:
             raise serializers.ValidationError('Must include email and password.')
         return super().validate(attrs)
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(required=False, allow_empty_file=True)
+
+    class Meta:
+        model = User
+        fields = ['name', 'phone', 'city', 'avatar']
+
+    def validate_avatar(self, value):
+        if value:
+            # Check file type (similar to frontend)
+            allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+            if value.content_type not in allowed_types and not value.content_type.startswith('image/'):
+                raise serializers.ValidationError('Только изображения разрешены (PNG, JPEG и т.д.).')
+            # Check file size (2MB limit)
+            if value.size > 2 * 1024 * 1024:
+                raise serializers.ValidationError('Файл слишком большой (макс. 2MB).')
+        return value

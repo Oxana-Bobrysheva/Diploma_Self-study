@@ -1,14 +1,10 @@
-import json
 
-from django.http import JsonResponse
 from rest_framework import viewsets, permissions
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import action, permission_classes
-from rest_framework.permissions import AllowAny
-
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import Payment, Subscription
-from .serializers import UserSerializer, PaymentSerializer, SubscriptionSerializer
-from lms.permissions import IsOwnerOrAdmin
+from .serializers import UserSerializer, PaymentSerializer, SubscriptionSerializer, ProfileSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
 from rest_framework.views import APIView
@@ -146,3 +142,14 @@ class LoginView(APIView):
         else:
             print("Authentication failed")
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class ProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure user is logged in
+
+    def post(self, request):
+        serializer = ProfileSerializer(instance=request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

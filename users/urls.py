@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from .views import ProfileUpdateView
 
 router = DefaultRouter()
 router.register(r'', views.UserViewSet)
@@ -16,5 +17,6 @@ urlpatterns = [
         views.UserViewSet.as_view({'get': 'teachers'}),
         name='teachers'
     ),
+    path('api/profile/update/', ProfileUpdateView.as_view(), name='profile-update'),
     path('', include(router.urls)),
 ]
