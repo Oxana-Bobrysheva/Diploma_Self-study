@@ -4,10 +4,10 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import CourseList from './components/CourseList';
+import CourseDetail from './components/CourseDetail';
 import MaterialViewer from './components/MaterialViewer';
 import TestForm from './components/TestForm';
 import Profile from './components/Profile';
-import CourseDetail from './components/CourseDetail';
 import TeachersList from './components/TeachersList';
 
 function App() {
