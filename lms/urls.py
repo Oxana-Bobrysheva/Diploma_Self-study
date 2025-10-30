@@ -14,5 +14,6 @@ urlpatterns = [
     path('courses/<int:course_id>/enroll/', EnrollCourseView.as_view(), name='enroll-course'),
     path('courses/<int:pk>/edit/', CourseViewSet.as_view({'patch': 'edit'}), name='edit-course'),
     path('', include(router.urls)),
+
     path('submit-test/<int:test_id>/', SubmitTestView.as_view(), name='submit-test'),
 ]

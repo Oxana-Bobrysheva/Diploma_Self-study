@@ -9,6 +9,7 @@ import MaterialViewer from './components/MaterialViewer';
 import TestForm from './components/TestForm';
 import Profile from './components/Profile';
 import TeachersList from './components/TeachersList';
+import AddMaterial from './components/AddMaterial';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/courses" element={<CourseList />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/course/:courseId/materials" element={<MaterialViewer />} />
+          <Route path="/courses/:id/add-material" element={<AddMaterial />} />
           <Route path="/course/:courseId/tests" element={<TestForm />} />
           <Route path="/" element={<Dashboard />} />  {/* Ensure this is set to Dashboard */}
         </Routes>

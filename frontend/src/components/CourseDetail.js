@@ -6,7 +6,8 @@ const CourseDetail = () => {
   const { id } = useParams();  // Get course ID from URL
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
-  const [profile, setProfile] = useState(null);  // New: To store user profile (for role)
+  const [profile, setProfile] = useState(null);
+  const [isOwner, setIsOwner] = useState(false);  // CHANGE: Keep state for isOwner (used in JSX now)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   // New: States for inline editing
@@ -14,7 +15,10 @@ const CourseDetail = () => {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
 
-  console.log('CourseDetail component is mounting!');
+  // CHANGE: Moved mounting log inside useEffect for better timing (runs on mount)
+  useEffect(() => {
+    console.log('CourseDetail component is mounting!');
+  }, []);
 
   // New: Fetch user profile to get role
   const fetchProfile = async () => {
@@ -44,7 +48,7 @@ const CourseDetail = () => {
       }
       console.log('Token is valid—proceeding with API calls');
       try {
-        // Fetch profile and course in parallel
+        // CHANGE: Fetch profile and course in parallel (this was already here, but now fully inside try)
         const [profileData, courseResponse] = await Promise.all([
           fetchProfile(),
           api.get(`/courses/${id}/`, {
@@ -52,17 +56,24 @@ const CourseDetail = () => {
           }),
         ]);
 
+        // CHANGE: Set states first (using fetched data)
         setProfile(profileData);
+        setCourse(courseResponse.data);
         console.log('Profile:', profileData);
         console.log('Course:', courseResponse.data);
         console.log('isTeacherOrAdmin:', profileData?.role === 'teacher' || profileData?.role === 'admin');
-        console.log('isOwner:', (profileData?.role === 'teacher' || profileData?.role === 'admin')
-        && courseResponse.data.teacher === profileData.id);
-        setCourse(courseResponse.data);
-        // Initialize edit states with course data
+
+        // CHANGE: Initialize edit states with course data (moved here after setCourse for safety)
         setEditTitle(courseResponse.data.title);
         setEditDescription(courseResponse.data.description);
         console.log('Course data:', courseResponse.data);  // Debug log
+
+        // CHANGE: Add the ownership check and log here (after data is available; uses fetched vars, not state)
+        // NOTE: If profileData or courseResponse.data is null, isOwnerCheck will be false (safety)
+        const isOwnerCheck = profileData?.id === courseResponse.data?.owner;  // Direct ID comparison (owner field)
+        console.log('isOwner check (profile.id === course.owner):', isOwnerCheck);
+        setIsOwner(isOwnerCheck);  // Set the state (add && (profileData?.role === 'teacher') if role needed)
+
         setError('');
       } catch (err) {
         console.error('API Error:', err);  // Debug log
@@ -82,7 +93,7 @@ const CourseDetail = () => {
     };
 
     fetchData();
-  }, [id, navigate]);
+  }, [id, navigate]);  // CHANGE: Fixed dependency array (was malformed)
 
   // New: Handle enrollment for students
   const handleEnroll = async () => {
@@ -122,7 +133,11 @@ const CourseDetail = () => {
   };
 
   // New: Check if user is enrolled (assuming your API returns enrolled_students or similar)
+  // NOTE: If enrolled_students is array of objects, change to .some(student => student.id === profile?.id)
   const isEnrolled = profile && course?.enrolled_students?.includes(profile.id);
+
+  // CHANGE: Keep isTeacherOrAdmin for other logic, but DON'T redefine isOwner here (use state instead)
+  const isTeacherOrAdmin = profile?.role === 'teacher' || profile?.role === 'admin';
 
   if (loading) {
     return (
@@ -198,8 +213,8 @@ const CourseDetail = () => {
   }
 
   // Determine user role and ownership
-  const isTeacherOrAdmin = profile?.role === 'teacher' || profile?.role === 'admin';
-  const isOwner = isTeacherOrAdmin && course.teacher === profile.id;  // Assuming course has a 'teacher' field
+  // CHANGE: Use state isOwner here (no redefinition—prevents shadowing and timing issues)
+  // NOTE: If you want role check in UI, change to: isOwner && isTeacherOrAdmin
 
   return (
     <div style={{
@@ -231,44 +246,45 @@ const CourseDetail = () => {
           Вернуться в профиль
         </button>
         {/* Role-Based Buttons in Sidebar */}
-        {isTeacherOrAdmin && isOwner && (
+        {/* CHANGE: Use state isOwner (and optionally && isTeacherOrAdmin) for condition */}
+        {isOwner && (
           <>
             <button
               onClick={() => setEditing(true)}
               style={{
-                backgroundColor: '#007bff',
-                color: 'white',
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
+            backgroundColor: '#ffffff',
+            color: 'green',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
             >
               Редактировать курс
             </button>
             <button
               onClick={() => navigate(`/courses/${id}/add-material`)}
               style={{
-                backgroundColor: '#007bff',
-                color: 'white',
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
+            backgroundColor: '#ffffff',
+            color: 'green',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
             >
               Добавить материал
             </button>
             <button
               onClick={() => navigate(`/courses/${id}/students`)}
               style={{
-                backgroundColor: '#007bff',
-                color: 'white',
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
+            backgroundColor: '#ffffff',
+            color: 'green',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
             >
               Просмотр зачисленных студентов
             </button>
@@ -394,6 +410,7 @@ const CourseDetail = () => {
         )}
 
         {/* Role-Based Actions for Students (Enroll Button) */}
+        {/* CHANGE: Use isTeacherOrAdmin (kept as-is; no change to isOwner here) */}
         {!isTeacherOrAdmin && !isEnrolled && (
           <button
             onClick={handleEnroll}

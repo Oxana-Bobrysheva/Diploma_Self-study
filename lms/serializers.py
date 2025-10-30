@@ -3,6 +3,7 @@ from .models import Course, Material, Test, TestResult, Enrollment
 
 
 class MaterialSerializer(serializers.ModelSerializer):
+    illustration = serializers.FileField()
     class Meta:
         model = Material
         fields = '__all__'

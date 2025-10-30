@@ -40,6 +40,14 @@ export const getTests = (courseId) => api.get(`/courses/${courseId}/tests/`);
 export const getTestDetails = (testId) => api.get(`/tests/${testId}/`);
 export const submitTestResult = (data) => api.post('/test-results/', data);
 
+
 export const getTeachers = () => api.get('/users/teachers/');
+
+export const addMaterial = (courseId, data) =>
+  api.post(`/courses/${courseId}/add-material/`, data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',  // For file uploads
+    },
+  });
 
 export default api;
