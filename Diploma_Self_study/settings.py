@@ -150,45 +150,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
-STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY')
-
-
-stripe.api_key = STRIPE_SECRET_KEY
-
-# URL-адрес брокера сообщений
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL')
-
-# URL-адрес брокера результатов, также Redis
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND')
-
-# Часовой пояс для работы Celery
-CELERY_TIMEZONE = "UTC"
-
-# Флаг отслеживания выполнения задач
-CELERY_TASK_TRACK_STARTED = True
-
-# Максимальное время на выполнение задачи
-CELERY_TASK_TIME_LIMIT = 30 * 60
-
-# Настройки для Celery
-CELERY_BEAT_SCHEDULE = {
-    'task-name': {
-        'task': 'study.tasks.block_inactive_users',
-        'schedule': crontab(minute=0, hour=0),
-    },
-}
-
-#
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = os.getenv('EMAIL_HOST')
-# EMAIL_PORT = os.getenv('EMAIL_PORT')
-# EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS')
-# EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL')
-# EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-# DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
-
 # CORS настройки (для фронтенда, например, localhost:3000)
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
