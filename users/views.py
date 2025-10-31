@@ -3,8 +3,7 @@ from rest_framework import viewsets, permissions
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import action, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .models import Payment, Subscription
-from .serializers import UserSerializer, PaymentSerializer, SubscriptionSerializer, ProfileSerializer
+from .serializers import UserSerializer, ProfileSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer
 from rest_framework.views import APIView
@@ -82,21 +81,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(data, status=status.HTTP_200_OK)
 
-class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()
-    serializer_class = PaymentSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)  # Only own payments
-
-class SubscriptionViewSet(viewsets.ModelViewSet):
-    queryset = Subscription.objects.all()
-    serializer_class = SubscriptionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return self.queryset.filter(user_sub=self.request.user)  # Only own subscriptions
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer

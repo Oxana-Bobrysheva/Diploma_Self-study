@@ -1,7 +1,6 @@
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
-from .models import Payment, Subscription
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 User = get_user_model()
 
@@ -38,16 +37,6 @@ class UserSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             **{k: v for k, v in validated_data.items() if k not in ['email', 'password']})
         return user
-
-class PaymentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Payment
-        fields = '__all__'
-
-class SubscriptionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Subscription
-        fields = '__all__'
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

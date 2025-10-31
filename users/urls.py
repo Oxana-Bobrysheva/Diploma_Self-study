@@ -5,8 +5,6 @@ from .views import ProfileUpdateView
 
 router = DefaultRouter()
 router.register(r'', views.UserViewSet)
-router.register(r'payments', views.PaymentViewSet)
-router.register(r'subscriptions', views.SubscriptionViewSet)
 router.register(r'profiles', views.UserViewSet, basename='profile')
 
 urlpatterns = [

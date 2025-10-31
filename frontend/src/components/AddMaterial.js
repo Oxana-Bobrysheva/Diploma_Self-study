@@ -24,7 +24,6 @@ const AddMaterial = () => {
 
       setLoading(true);  // Show loading during fetch
       setError('');  // Clear any old errors
-
       try {
         console.log('Fetching course details...');
         const response = await getCourseDetails(id);  // Axios with auto-token
