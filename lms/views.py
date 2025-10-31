@@ -5,8 +5,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Course, Material, Test, TestResult, Enrollment
-from .serializers import CourseSerializer, MaterialSerializer, TestSerializer, TestResultSerializer, EnrollmentSerializer
-from .permissions import IsTeacherOrAdmin, IsOwnerOrAdmin, IsStudentOrSubscribed
+from .serializers import CourseSerializer, MaterialSerializer, TestSerializer, TestResultSerializer, \
+    EnrollmentSerializer
+from .permissions import IsTeacherOrAdmin, IsCourseOwnerOrAdmin, IsStudentOrSubscribed
+
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.prefetch_related('materials').all()
@@ -14,17 +16,19 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'list':
-            return [permissions.AllowAny()]
-
-        if self.action in ['create', 'update', 'partial_update', 'destroy', 'edit', 'add_materials']:
-            return [permissions.IsAuthenticated(), IsTeacherOrAdmin(), IsOwnerOrAdmin()]
+            return [permissions.AllowAny()]  # Все могут видеть список курсов
         elif self.action == 'retrieve':
-            return [permissions.IsAuthenticated(), IsOwnerOrAdmin()]
-        return [permissions.IsAuthenticated(),
-                IsStudentOrSubscribed()]
+            return [permissions.IsAuthenticated()]  # Аутентифицированные могут видеть детали
+        elif self.action in ['create']:
+            return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]  # Только учителя и админы могут создавать
+        elif self.action in ['update', 'partial_update', 'destroy', 'edit', 'add_material']:
+            return [permissions.IsAuthenticated(),
+                    IsCourseOwnerOrAdmin()]  # Только владельцы и админы могут редактировать
+        else:
+            return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)  # Auto-set owner to current user
+        serializer.save(owner=self.request.user)  # Автоматически устанавливаем владельца
 
     @action(detail=True, methods=['patch'], url_path='edit')
     def edit(self, request, pk=None):
@@ -35,15 +39,25 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsTeacherOrAdmin, IsOwnerOrAdmin],
-            url_path='add-material')
+    @action(detail=True, methods=['post'], url_path='add-material')
     def add_material(self, request, pk=None):
         course = self.get_object()
-        serializer = MaterialSerializer(data=request.data)
-        print(f"DEBUG: Reached add_material - User: {request.user}, Course: {course}")
+        print(f"DEBUG: Adding material - User: {request.user}, Course owner: {course.owner}")
+
+        # Создаем копию данных и добавляем курс и владельца
+        material_data = request.data.copy()
+
+        serializer = MaterialSerializer(data=material_data)
         if serializer.is_valid():
-            material = serializer.save(course=course)
+            # Сохраняем материал с привязкой к курсу и текущему пользователю как владельцу
+            material = serializer.save(
+                course=course,
+                owner=request.user
+            )
+            print(f"DEBUG: Material created successfully - ID: {material.id}")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        print(f"DEBUG: Serializer errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -52,12 +66,15 @@ class MaterialViewSet(viewsets.ModelViewSet):
     serializer_class = MaterialSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsTeacherOrAdmin(), IsOwnerOrAdmin()]
+        if self.action in ['create']:
+            return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]
+        elif self.action in ['update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated(), IsStudentOrSubscribed()]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
 
 class TestViewSet(viewsets.ModelViewSet):
     queryset = Test.objects.all()
@@ -65,26 +82,23 @@ class TestViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsTeacherOrAdmin(), IsOwnerOrAdmin()]
+            return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]
         return [permissions.IsAuthenticated(), IsStudentOrSubscribed()]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+
 class TestResultViewSet(viewsets.ModelViewSet):
     queryset = TestResult.objects.all()
     serializer_class = TestResultSerializer
-    permission_classes = [permissions.IsAuthenticated]  # Users can only see their own results
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)  # Filter to user's results
+        return self.queryset.filter(user=self.request.user)
+
 
 class MyCoursesView(APIView):
-    """
-    GET: Returns user's courses based on role.
-    - Students: Enrolled courses.
-    - Teachers: Owned courses.
-    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -110,11 +124,8 @@ class MyCoursesView(APIView):
                 status=status.HTTP_200_OK
             )
 
+
 class EnrollCourseView(APIView):
-    """
-    POST: Enrolls the authenticated user in a specific course.
-    Body: Empty (course_id from URL).
-    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, course_id):
@@ -146,13 +157,21 @@ class SubmitTestView(APIView):
     def post(self, request, test_id):
         try:
             test = Test.objects.get(id=test_id)
-            # Check if user is enrolled in the course
             if not Enrollment.objects.filter(user=request.user, course=test.material.course).exists():
                 return Response({"error": "Not enrolled in this course."}, status=403)
+
+            # Простая функция для расчета баллов
+            def calculate_score(questions, answers):
+                correct = 0
+                total = len(questions)
+                for i, q in enumerate(questions):
+                    if answers.get(str(i)) == q['correct']:
+                        correct += 1
+                return (correct / total) * 100 if total > 0 else 0
+
             answers = request.data.get('answers', {})
-            # Validate and score (implement logic here)
             score = calculate_score(test.questions, answers)
-            passed = score >= 70  # Example threshold
+            passed = score >= 70
             TestResult.objects.create(user=request.user, test=test, answers=answers, score=score, passed=passed)
             return Response({"score": score, "passed": passed}, status=201)
         except Test.DoesNotExist:

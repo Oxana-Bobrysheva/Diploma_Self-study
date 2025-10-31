@@ -31,17 +31,17 @@ export const refreshToken = (data) => api.post('/token/refresh/', data);
 export const registerUser = (data) => api.post('/users/signup/', data);
 
 // LMS endpoints (new)
-export const getCourses = () => api.get('/courses/');
-export const getCourseDetails = (courseId) => api.get(`/course/${courseId}/`);
-export const getMyCourses = () => api.get('/courses/my/');
+export const getCourses = () => api.get(`/courses/`);
+export const getCourseDetails = (courseId) => api.get(`/courses/${courseId}/`);
+export const getMyCourses = () => api.get(`/courses/my/`);
 export const getMaterials = (courseId) => api.get(`/courses/${courseId}/materials/`);
 export const getMaterialDetails = (materialId) => api.get(`/materials/${materialId}/`);
 export const getTests = (courseId) => api.get(`/courses/${courseId}/tests/`);
 export const getTestDetails = (testId) => api.get(`/tests/${testId}/`);
-export const submitTestResult = (data) => api.post('/test-results/', data);
+export const submitTestResult = (data) => api.post(`/test-results/`, data);
 
 
-export const getTeachers = () => api.get('/users/teachers/');
+export const getTeachers = () => api.get(`/users/teachers/`);
 
 export const addMaterial = (courseId, data) =>
   api.post(`/courses/${courseId}/add-material/`, data, {
