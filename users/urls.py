@@ -17,6 +17,11 @@ urlpatterns = [
         views.UserViewSet.as_view({'get': 'teachers'}),
         name='teachers'
     ),
+    path(
+        'students/',
+        views.UserViewSet.as_view({'get': 'students'}),
+        name='students'
+    ),
     path('api/profile/update/', ProfileUpdateView.as_view(), name='profile-update'),
     path('', include(router.urls)),
 ]

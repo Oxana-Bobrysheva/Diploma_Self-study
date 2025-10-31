@@ -10,6 +10,7 @@ const Dashboard = () => {
     // State for statistics
     const [totalCourses, setTotalCourses] = useState(0);
     const [totalAuthors, setTotalAuthors] = useState(0);
+    const [totalStudents, setTotalStudents] = useState(0);
     const [loading, setLoading] = useState(true);
 
     // Fetch stats on component mount
@@ -26,6 +27,10 @@ useEffect(() => {
       // Fetch authors count (fixed!)
       const authorsResponse = await axios.get('/api/users/authors-count/');
       setTotalAuthors(authorsResponse.data.count);
+
+      // Fetch students count (fixed!)
+      const studentsResponse = await axios.get('/api/users/students-count/');
+      setTotalStudents(studentsResponse.data.count);
 
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -216,6 +221,17 @@ useEffect(() => {
                         }}>
                             <h3>Всего авторов</h3>
                             <p style={{ fontSize: '2em', fontWeight: 'bold', color: '#001F3F' }}>{totalAuthors}</p>
+                        </div>
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '10px',
+                            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                            padding: '20px',
+                            width: '200px',
+                            textAlign: 'center'
+                        }}>
+                            <h3>Всего студентов</h3>
+                            <p style={{ fontSize: '2em', fontWeight: 'bold', color: '#001F3F' }}>{totalStudents}</p>
                         </div>
                     </div>
                 )}

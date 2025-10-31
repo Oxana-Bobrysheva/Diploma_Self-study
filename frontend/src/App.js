@@ -23,9 +23,9 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/courses" element={<CourseList />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
-          <Route path="/course/:courseId/materials" element={<MaterialViewer />} />
+          <Route path="/courses/:courseId/materials" element={<MaterialViewer />} />
           <Route path="/courses/:id/add-material" element={<AddMaterial />} />
-          <Route path="/course/:courseId/tests" element={<TestForm />} />
+          <Route path="/courses/:courseId/tests" element={<TestForm />} />
           <Route path="/" element={<Dashboard />} />  {/* Ensure this is set to Dashboard */}
         </Routes>
       </div>

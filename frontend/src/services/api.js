@@ -32,7 +32,7 @@ export const registerUser = (data) => api.post('/users/signup/', data);
 
 // LMS endpoints (new)
 export const getCourses = () => api.get('/courses/');
-export const getCourseDetails = (courseId) => api.get(`/courses/${courseId}/`);
+export const getCourseDetails = (courseId) => api.get(`/course/${courseId}/`);
 export const getMyCourses = () => api.get('/courses/my/');
 export const getMaterials = (courseId) => api.get(`/courses/${courseId}/materials/`);
 export const getMaterialDetails = (materialId) => api.get(`/materials/${materialId}/`);

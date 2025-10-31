@@ -39,6 +39,16 @@ class UserViewSet(viewsets.ModelViewSet):
         count = self.queryset.filter(role='teacher').count()
         return Response({'count': count}, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'], url_path='students-count', permission_classes=[])
+    def students_count(self, request):
+        """
+        Public endpoint to get total number of authors.
+        URL: /api/users/authors-count/
+        No authentication required.
+        """
+        count = self.queryset.filter(role='student').count()
+        return Response({'count': count}, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['get', 'put', 'patch'], url_path='me')
     def me(self, request):
         """Custom action for /api/profiles/me/ - view/edit own profile."""

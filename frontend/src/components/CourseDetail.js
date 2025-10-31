@@ -7,7 +7,7 @@ const CourseDetail = () => {
   const navigate = useNavigate();
   const [course, setCourse] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [isOwner, setIsOwner] = useState(false);  // CHANGE: Keep state for isOwner (used in JSX now)
+  const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   // New: States for inline editing
@@ -68,8 +68,6 @@ const CourseDetail = () => {
         setEditDescription(courseResponse.data.description);
         console.log('Course data:', courseResponse.data);  // Debug log
 
-        // CHANGE: Add the ownership check and log here (after data is available; uses fetched vars, not state)
-        // NOTE: If profileData or courseResponse.data is null, isOwnerCheck will be false (safety)
         const isOwnerCheck = profileData?.id === courseResponse.data?.owner;  // Direct ID comparison (owner field)
         console.log('isOwner check (profile.id === course.owner):', isOwnerCheck);
         setIsOwner(isOwnerCheck);  // Set the state (add && (profileData?.role === 'teacher') if role needed)
@@ -93,7 +91,7 @@ const CourseDetail = () => {
     };
 
     fetchData();
-  }, [id, navigate]);  // CHANGE: Fixed dependency array (was malformed)
+  }, [id, navigate]);
 
   // New: Handle enrollment for students
   const handleEnroll = async () => {
@@ -132,7 +130,6 @@ const CourseDetail = () => {
     }
   };
 
-  // New: Check if user is enrolled (assuming your API returns enrolled_students or similar)
   // NOTE: If enrolled_students is array of objects, change to .some(student => student.id === profile?.id)
   const isEnrolled = profile && course?.enrolled_students?.includes(profile.id);
 
@@ -232,6 +229,21 @@ const CourseDetail = () => {
         flexDirection: 'column',
         gap: '10px'
       }}>
+        <button
+        onClick={() => navigate('/dashboard')}
+        style={{
+          background: '#28a745',
+          color: 'white',
+          border: 'none',
+          padding: '12px 24px',
+          borderRadius: '5px',
+          cursor: 'pointer',
+          alignSelf: 'centre',
+          marginBottom: '20px'
+        }}
+      >
+        На главную
+      </button>
         <button
           onClick={() => navigate('/profile')}
           style={{

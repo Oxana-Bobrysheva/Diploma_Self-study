@@ -176,7 +176,7 @@ const CourseList = () => {
                   Materials: {course.materials?.length || 0}
                 </p>
                 <button
-                  onClick={() => navigate(`/course/${course.id}`)}
+                  onClick={() => navigate(`/courses/${course.id}`)}
                   style={{
                     background: '#007bff',
                     color: 'white',
