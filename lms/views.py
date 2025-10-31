@@ -16,7 +16,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return [permissions.AllowAny()]
 
-        if self.action in ['create', 'update', 'partial_update', 'destroy', 'edit']:
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'edit', 'add_materials']:
             return [permissions.IsAuthenticated(), IsTeacherOrAdmin(), IsOwnerOrAdmin()]
         elif self.action == 'retrieve':
             return [permissions.IsAuthenticated(), IsOwnerOrAdmin()]
@@ -35,12 +35,14 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'], url_path='add-material')
+    @action(detail=True, methods=['post'], permission_classes=[IsTeacherOrAdmin, IsOwnerOrAdmin],
+            url_path='add-material')
     def add_material(self, request, pk=None):
         course = self.get_object()
         serializer = MaterialSerializer(data=request.data)
+        print(f"DEBUG: Reached add_material - User: {request.user}, Course: {course}")
         if serializer.is_valid():
-            serializer.save(course=course, owner=request.user)  # Link to course and set owner
+            material = serializer.save(course=course)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
