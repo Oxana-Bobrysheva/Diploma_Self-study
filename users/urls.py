@@ -9,7 +9,7 @@ router.register(r'profiles', views.UserViewSet, basename='profile')
 
 urlpatterns = [
     path('signup/', views.RegisterView.as_view(), name='signup'),
-    path('login/', views.LoginView.as_view(), name='login'),
+
     path(
         'teachers/',
         views.UserViewSet.as_view({'get': 'teachers'}),
@@ -21,5 +21,6 @@ urlpatterns = [
         name='students'
     ),
     path('api/profile/update/', ProfileUpdateView.as_view(), name='profile-update'),
+
     path('', include(router.urls)),
 ]

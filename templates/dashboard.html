@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Welcome Note -->
+    <div class="text-center mb-5">
+        <h1 class="display-4 mb-3">Добро пожаловать на нашу платформу самообразования!</h1>
+        <p class="lead">Откройте для себя мир знаний с нашей интерактивной платформой,
+где обучение становится увлекательным и доступным. Вы можете выбирать
+и изучать курсы по интересующим вас темам, проходить тестирование для
+закрепления материала и отслеживать свои результаты в личном кабинете.
+А если возникнут вопросы, обсудите их на странице блога с авторами и
+учителями — получайте экспертные ответы и делитесь идеями в дружелюбной атмосфере!
+
+Начните свой путь к успеху уже сегодня!</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-4 mb-4">
+            <div class="card stats-card text-center h-100">
+                <div class="card-body py-4">
+                    <div class="text-primary mb-3">
+                        <i class="fas fa-book fa-3x"></i>
+                    </div>
+                    <h3 class="card-title">{{ total_courses|intcomma }}</h3>
+                    <p class="card-text">Total Courses</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card stats-card text-center h-100">
+                <div class="card-body py-4">
+                    <div class="text-success mb-3">
+                        <i class="fas fa-chalkboard-teacher fa-3x"></i>
+                    </div>
+                    <h3 class="card-title">{{ total_teachers|intcomma }}</h3>
+                    <p class="card-text">Expert Authors</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card stats-card text-center h-100">
+                <div class="card-body py-4">
+                    <div class="text-warning mb-3">
+                        <i class="fas fa-users fa-3x"></i>
+                    </div>
+                    <h3 class="card-title">{{ total_students|intcomma }}</h3>
+                    <p class="card-text">Active Students</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="text-center mt-5">
+        <h3 class="mb-3">Ready to start learning?</h3>
+        <a href="{% url 'course_list' %}" class="btn btn-custom btn-lg">Browse All Courses</a>
+    </div>
+</div>
+{% endblock %}

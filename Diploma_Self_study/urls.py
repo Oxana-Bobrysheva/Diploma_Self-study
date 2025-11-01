@@ -1,25 +1,27 @@
-from django.conf import settings
-from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
 from django.contrib import admin
-from django.urls import path, include
-from rest_framework_simplejwt.views import TokenRefreshView
-
-from users.views import CustomTokenObtainPairView
 from django.http import HttpResponse
+from django.urls import path, include
+from lms.views import dashboard
+from users.views import register
 
-def home(request):
-    return HttpResponse("""
-    Welcome to the LMS API!<br>
-    <a href="http://localhost:3000">Go to Frontend (React)</a><br>
-    API endpoints: /api/ (e.g., /api/courses/)
-    """)
+def test_view(request):
+    return HttpResponse("Test view works!")
 
 urlpatterns = [
-    path('', home),
     path('admin/', admin.site.urls),
-    path('api/', include('lms.urls')),
-    path('api/users/', include('users.urls')),
-    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # Authentication urls
+    path('login/', auth_views.LoginView.as_view(
+        template_name='registration/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('register/', register, name='register'),
+
+    # App urls
+    path('', dashboard, name='dashboard'),  # Main page
+    path('lms/', include('lms.urls')),  # Your LMS app URLs
+    path('users/', include('users.urls')),  # Your users app URLs
+
+    path('test/', test_view, name='test'),
 ]
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
