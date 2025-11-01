@@ -14,7 +14,8 @@ urlpatterns = [
 
     # Template URLs (for actual user interface)
     path('courses/', views.course_list_template, name='course_list'),
-    path('courses/<int:course_id>/', course_detail_template, name='course-detail'),
+    path('courses/<int:course_id>/', views.course_detail_template, name='course-detail'),
+    path('courses/<int:course_id>/enroll/', views.enroll_course_template, name='enroll_course_template'),
     path('my-courses/', views.my_courses_template, name='my_courses_template'),
     path('profile/', views.profile, name='profile'),
 

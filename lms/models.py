@@ -17,7 +17,7 @@ class Course(models.Model):
         default=0.00,
     )
     preview = models.ImageField(
-        upload_to="lms/images",
+        upload_to="courses/previews/",
         blank=True,
         null=True,
         verbose_name="Картинка",
@@ -66,7 +66,7 @@ class Material(models.Model):
     )
 
     illustration = models.ImageField(
-        upload_to="lms/illustrations",
+        upload_to="materials/illustrations",
         blank=True,
         null=True,
         verbose_name="Иллюстрация",

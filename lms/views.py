@@ -56,7 +56,8 @@ def course_list_template(request):
 def course_detail_template(request, course_id):
     """Display course details with different access levels"""
     course = get_object_or_404(Course, id=course_id)
-
+    print("DEBUG: Course fields:", [f.name for f in course._meta.get_fields()])
+    print("DEBUG: Course related objects:", [f for f in course._meta.get_fields() if f.is_relation])
     # Basic course statistics (available to everyone)
     materials_count = course.materials.count()
     tests_count = course.materials.filter(test__isnull=False).count()

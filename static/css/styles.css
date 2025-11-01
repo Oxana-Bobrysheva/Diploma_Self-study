@@ -1,0 +1,19 @@
+.bg-lightgreen {
+    background-color: #90ee90;
+    }
+.errorlist {
+    color: red;
+    font-weight: bold;
+    }
+
+.btn-custom {
+    background-color: white !important; /* White background */
+    color: #4bbbb4 !important; /* Text color */
+    font-weight: bold !important; /* Bold text */
+    border: 2px solid #4bbbb4; /* Optional: add a border in the same color */
+}
+
+.btn-custom:hover {
+    background-color: #4bbbb4 !important; /* Change background on hover */
+    color: white !important; /* Change text color on hover */
+}

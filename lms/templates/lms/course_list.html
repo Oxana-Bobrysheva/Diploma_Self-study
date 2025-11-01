@@ -86,7 +86,7 @@
                 <div class="d-flex align-items-center">
                     <i class="fas fa-info-circle fa-2x me-3"></i>
                     <div>
-                        <strong>Получите полный доступ!</strong> Войдите в систему чтобы просматривать детали курсов,
+                        <strong>Получите полный доступ!</strong> Войдите в систему, чтобы просматривать детали курсов,
                         записываться на обучение и получить доступ ко всем материалам.
                     </div>
                 </div>
@@ -211,5 +211,22 @@
     <!-- Keep the login modal and styles -->
 </div>
 
-<!-- Login Required Modal (keep your existing modal) -->
+<!-- Login Required Modal -->
+<div class="modal fade" id="loginRequiredModal" tabindex="-1" aria-labelledby="loginRequiredModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loginRequiredModalLabel">Требуется авторизация</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Для просмотра подробной информации о курсе "<span id="modalCourseTitle"></span>" необходимо войти в систему.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <a href="{% url 'login' %}" class="btn btn-primary">Войти</a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
