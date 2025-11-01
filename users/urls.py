@@ -21,5 +21,6 @@ urlpatterns = [
         name='students'
     ),
     path('api/profile/update/', ProfileUpdateView.as_view(), name='profile-update'),
+
     path('', include(router.urls)),
 ]

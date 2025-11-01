@@ -14,13 +14,11 @@ const CourseDetail = () => {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [hasAccess, setHasAccess] = useState(false);
+  const [formData, setFormData] = useState({title: '', content: ''});
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  // CHANGE: Moved mounting log inside useEffect for better timing (runs on mount)
-  useEffect(() => {
-    console.log('CourseDetail component is mounting!');
-  }, []);
-
-  // New: Fetch user profile to get role
+   // New: Fetch user profile to get role
   const fetchProfile = async () => {
     const token = localStorage.getItem('access_token');
     if (!token) return null;
@@ -59,6 +57,13 @@ const CourseDetail = () => {
         // CHANGE: Set states first (using fetched data)
         setProfile(profileData);
         setCourse(courseResponse.data);
+
+        const isOwner = profileData?.id === courseResponse.data?.owner;
+        const isTeacher = profileData?.role === 'teacher';
+        const isAdmin = profileData?.role === 'admin';
+
+// Set hasAccess based on roles
+        setHasAccess(isAdmin || isTeacher || isOwner);
         console.log('Profile:', profileData);
         console.log('Course:', courseResponse.data);
         console.log('isTeacherOrAdmin:', profileData?.role === 'teacher' || profileData?.role === 'admin');
@@ -92,6 +97,34 @@ const CourseDetail = () => {
 
     fetchData();
   }, [id, navigate]);
+
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await fetch(`/api/courses/${id}/add-material/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ courseId: course.id, ...formData })
+    });
+
+    if (!res.ok) {
+      if (res.status === 403) {
+        alert('Access denied. You can’t add materials here.');
+      } else {
+        alert('Failed to save.');
+      }
+      return;
+    }
+
+    // Success — close form, refresh data, etc.
+    setShowAddForm(false);
+  } catch (err) {
+    alert('Network error.');
+  }
+};
 
   // New: Handle enrollment for students
   const handleEnroll = async () => {
@@ -274,19 +307,22 @@ const CourseDetail = () => {
             >
               Редактировать курс
             </button>
+            {hasAccess && (
             <button
-              onClick={() => navigate(`/courses/${id}/add-material`)}
+              onClick={() => setShowAddForm(true)}
+              className="bg-blue-500 text-white px-4 py-2 rounded"
               style={{
-            backgroundColor: '#ffffff',
-            color: 'green',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
+                backgroundColor: '#ffffff',
+                color: 'green',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
             >
-              Добавить материал
-            </button>
+            Добавить материал
+          </button>
+        )}
             <button
               onClick={() => navigate(`/courses/${id}/students`)}
               style={{
@@ -329,15 +365,14 @@ const CourseDetail = () => {
               <label>Название:</label>
               <input
                 type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+                placeholder="Material title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
-              <label>Описание:</label>
               <textarea
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                style={{ width: '100%', padding: '8px', marginBottom: '10px', minHeight: '100px' }}
+                placeholder="Content"
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               />
               <button type="submit" style={{
                 backgroundColor: '#28a745',
@@ -393,31 +428,64 @@ const CourseDetail = () => {
           </>
         )}
 
-        {/* Materials Section */}
-        {course.materials && course.materials.length > 0 && (
+        {showAddForm && (
           <div style={{
-            maxWidth: '800px',
-            width: '100%',
-            padding: '20px',
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             backgroundColor: 'white',
+            padding: '20px',
             borderRadius: '8px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            marginBottom: '20px'
+            zIndex: 1000
           }}>
-            <h3>Материалы</h3>
-            <ul style={{ listStyleType: 'none', padding: 0 }}>
-              {course.materials.map((material) => (
-                <li key={material.id} style={{
-                  marginBottom: '10px',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '5px'
-                }}>
-                  {material.title}
-                  {/* Add more details or links here if available, e.g., <a href={material.url}>Download</a> */}
-                </li>
-              ))}
-            </ul>
+            <form onSubmit={handleSubmit}>
+              <h3>Добавить материал</h3>
+              <input
+                type="text"
+                placeholder="Название материала"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+                required
+              />
+              <textarea
+                placeholder="Содержание"
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                style={{ width: '100%', padding: '8px', marginBottom: '10px', minHeight: '100px' }}
+                required
+              />
+              <button type="submit" style={{
+                backgroundColor: '#28a745',
+                color: 'white',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                marginRight: '10px'
+              }}>
+                Сохранить
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddForm(false);
+                  setFormData({ title: '', content: '' });
+                }}
+                style={{
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                Закрыть
+              </button>
+            </form>
           </div>
         )}
 
