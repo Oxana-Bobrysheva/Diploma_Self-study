@@ -1,6 +1,7 @@
-
+from django.contrib.auth.forms import UserCreationForm
+from django.shortcuts import redirect, render
 from rest_framework import viewsets, permissions
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login
 from rest_framework.decorators import action, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .serializers import UserSerializer, ProfileSerializer
@@ -15,6 +16,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('home')  # Change to your home page name
+    else:
+        form = UserCreationForm()
+
+    return render(request, 'registration/register.html', {'form': form})
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()

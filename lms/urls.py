@@ -1,22 +1,24 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from . import views
-from .views import EnrollCourseView, MyCoursesView, SubmitTestView, CourseViewSet, MaterialViewSet
+from django.urls import path
 
-router = DefaultRouter()
-router.register(r'courses', views.CourseViewSet)
-router.register(r'materials', views.MaterialViewSet)
-router.register(r'tests', views.TestViewSet)
-router.register(r'test-results', views.TestResultViewSet)
+from . import views
+from .views import CourseViewSet, course_list_template, course_detail_template
 
 urlpatterns = [
-    path('courses/my/', MyCoursesView.as_view(), name='my-courses'),
-    path('courses/<int:course_id>/enroll/', EnrollCourseView.as_view(), name='enroll-course'),
-    path('courses/<int:pk>/edit/', CourseViewSet.as_view({'patch': 'edit'}), name='edit-course'),
-    path('courses/<int:pk>/add-material/', CourseViewSet.as_view({'post': 'add_material'}), name='add-material'),
-    path('submit-test/<int:test_id>/', SubmitTestView.as_view(), name='submit-test'),
+    # API URLs (for diploma requirements)
+    path('api/courses/', CourseViewSet.as_view({'get': 'list'}), name='api-course-list'),
+    path('api/courses/<int:pk>/', CourseViewSet.as_view({'get': 'retrieve'}), name='api-course-detail'),
 
-    path('', include(router.urls)),
+    path('authors/', views.authors, name='authors'),
+    path('discussions/', views.discussions, name='discussions'),
+    path('author/<int:teacher_id>/courses/', views.author_courses, name='author_courses'),
 
+    # Template URLs (for actual user interface)
+    path('courses/', views.course_list_template, name='course_list'),
+    path('courses/<int:course_id>/', course_detail_template, name='course-detail'),
+    path('my-courses/', views.my_courses_template, name='my_courses_template'),
+    path('profile/', views.profile, name='profile'),
 
+    # Swagger documentation
+    # path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]
+

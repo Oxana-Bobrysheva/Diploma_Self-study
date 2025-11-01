@@ -1,13 +1,125 @@
+from django.contrib import messages
+from django.db import models
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count
+from django.shortcuts import redirect, render, get_object_or_404
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Course, Material, Test, TestResult, Enrollment
+from .models import Course, Material, Test, TestResult, Enrollment, User
 from .serializers import CourseSerializer, MaterialSerializer, TestSerializer, TestResultSerializer, \
     EnrollmentSerializer
 from .permissions import IsTeacherOrAdmin, IsCourseOwnerOrAdmin, IsStudentOrSubscribed
+
+
+def course_list_template(request):
+    """Display all courses with platform statistics - PUBLIC ACCESS"""
+
+    courses = Course.objects.all().prefetch_related('materials', 'owner')
+
+    # Comprehensive platform statistics for courses page
+    total_courses = Course.objects.count()
+    total_materials = Material.objects.count()
+    total_tests = Test.objects.count()
+    total_teachers = User.objects.filter(role='teacher').count()
+    total_enrollments = Enrollment.objects.count()
+
+    # Search functionality
+    search_query = request.GET.get('search', '')
+    if search_query:
+        courses = courses.filter(
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+
+    # Annotate individual courses with their own stats
+    courses = courses.annotate(
+        materials_count=Count('materials'),
+        tests_count=Count('materials__test')
+    )
+
+    return render(request, 'lms/course_list.html', {
+        'courses': courses,
+        'total_courses': total_courses,
+        'total_materials': total_materials,
+        'total_tests': total_tests,
+        'total_teachers': total_teachers,
+        'total_enrollments': total_enrollments,
+        'search_query': search_query,
+        'user_is_authenticated': request.user.is_authenticated,
+    })
+
+
+def course_detail_template(request, course_id):
+    """Display course details with different access levels"""
+    course = get_object_or_404(Course, id=course_id)
+
+    # Basic course statistics (available to everyone)
+    materials_count = course.materials.count()
+    tests_count = course.materials.filter(test__isnull=False).count()
+
+    context = {
+        'course': course,
+        'materials_count': materials_count,
+        'tests_count': tests_count,
+        'user_is_authenticated': request.user.is_authenticated,
+    }
+
+    if request.user.is_authenticated:
+        # Additional info for authenticated users
+        user_enrolled = Enrollment.objects.filter(
+            user=request.user,
+            course=course
+        ).exists()
+
+        if user_enrolled:
+            # Full access for enrolled students
+            materials = course.materials.all().prefetch_related('test')
+            context.update({
+                'user_enrolled': True,
+                'materials': materials,
+            })
+        else:
+            # Limited access for authenticated but not enrolled
+            context.update({
+                'user_enrolled': False,
+            })
+
+    return render(request, 'lms/course_detail.html', context)
+
+
+@login_required
+def enroll_course_template(request, course_id):
+    """Handle course enrollment via template"""
+    course = get_object_or_404(Course, id=course_id)
+
+    # Check if already enrolled
+    enrollment, created = Enrollment.objects.get_or_create(
+        user=request.user,
+        course=course
+    )
+
+    if created:
+        messages.success(request, f'Successfully enrolled in {course.title}!')
+    else:
+        messages.info(request, f'You are already enrolled in {course.title}')
+
+    return redirect('course_detail_template', course_id=course_id)
+
+@login_required
+def my_courses_template(request):
+    """Display user's enrolled courses"""
+    # You can implement this later
+    return render(request, 'lms/my_courses.html')
+
+@login_required
+def profile(request):
+    """User profile page"""
+    # You can implement this later
+    return render(request, 'users/profile.html')
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -176,3 +288,46 @@ class SubmitTestView(APIView):
             return Response({"score": score, "passed": passed}, status=201)
         except Test.DoesNotExist:
             return Response({"error": "Test not found."}, status=404)
+
+
+def dashboard(request):
+    # Get statistics
+    total_courses = Course.objects.count()
+    total_teachers = User.objects.filter(role='teacher').count()
+    total_students = User.objects.filter(role='student').count()
+
+    context = {
+        'total_courses': total_courses,
+        'total_teachers': total_teachers,
+        'total_students': total_students,
+    }
+
+    return render(request, 'dashboard.html', context)
+
+
+def authors(request):
+    """Display all teachers/authors"""
+    teachers = User.objects.filter(role='teacher')
+
+    return render(request, 'lms/authors.html', {
+        'teachers': teachers
+    })
+
+
+def discussions(request):
+    """Discussion forum page"""
+    # For now, we'll create a simple placeholder
+    # You can expand this with actual discussion functionality later
+
+    return render(request, 'lms/discussions.html')
+
+
+def author_courses(request, teacher_id):
+    """Show courses by a specific author"""
+    teacher = get_object_or_404(User, id=teacher_id, role='teacher')
+    courses = Course.objects.filter(owner=teacher)
+
+    return render(request, 'lms/author_courses.html', {
+        'teacher': teacher,
+        'courses': courses
+    })
