@@ -3,7 +3,9 @@ from .models import Course, Material, Test, TestResult, Enrollment
 
 
 class MaterialSerializer(serializers.ModelSerializer):
-    illustration = serializers.FileField()
+    illustration = serializers.FileField(required=False, allow_null=True)  # ← ADD required=False
+    additional_files = serializers.FileField(required=False, allow_null=True)  # ← If you have this field
+
     class Meta:
         model = Material
         fields = '__all__'

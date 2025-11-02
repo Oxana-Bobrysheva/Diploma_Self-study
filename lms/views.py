@@ -259,6 +259,77 @@ class MaterialDetailView(LoginRequiredMixin, TemplateView):
         })
         return context
 
+
+class MaterialCreateView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'lms/material_form.html'
+
+    def test_func(self):
+        """Only course owner or admin can add materials"""
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+        return self.request.user == course.owner or self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+
+        context.update({
+            'course': course,
+            'title': f'Добавить материал в курс: {course.title}',
+            'errors': {},
+            'form_data': {}
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+
+        # Check permission again
+        if not (request.user == course.owner or request.user.is_superuser):
+            messages.error(request, "У вас нет прав для добавления материалов в этот курс")
+            return redirect('course-detail', course_id=course_id)
+
+        # Prepare data for serializer validation
+        material_data = {
+            'title': request.POST.get('title'),
+            'content': request.POST.get('content'),
+            'video_link': request.POST.get('video_link', ''),
+            'course': course.id,
+            'owner': request.user.id
+        }
+
+        # Validate with serializer
+        serializer = MaterialSerializer(data=material_data, context={'request': request})
+
+        if serializer.is_valid():
+            # Create material with all actual fields
+            material = Material(
+                title=material_data['title'],
+                content=material_data['content'],
+                video_link=material_data['video_link'],
+                course=course,
+                owner=request.user
+            )
+
+            # Handle optional file field
+            if request.FILES.get('illustration'):
+                material.illustration = request.FILES['illustration']
+
+            material.save()
+
+            messages.success(request, 'Материал успешно добавлен!')
+            return redirect('course-detail', course_id=course_id)
+        else:
+            # Return form with errors
+            return self.render_to_response({
+                'course': course,
+                'title': f'Добавить материал в курс: {course.title}',
+                'errors': serializer.errors,
+                'form_data': request.POST
+            })
+
 class TestViewSet(viewsets.ModelViewSet):
     queryset = Test.objects.all()
     serializer_class = TestSerializer
@@ -523,9 +594,24 @@ def profile(request):
                 # Fallback: direct database query
                 from lms.models import Course
                 context['my_courses'] = Course.objects.filter(owner=user)
+
+            # ✅ ADD STATISTICS CALCULATIONS
+            from lms.models import Material, Enrollment
+
+            # Calculate total materials created by this teacher
+            total_materials = Material.objects.filter(owner=user).count()
+
+            # Calculate total students across all teacher's courses
+            total_students = Enrollment.objects.filter(course__owner=user).count()
+
+            # Add statistics to context
+            context['total_materials'] = total_materials
+            context['total_students'] = total_students
+
         except Exception as e:
             print(f"Error getting teacher courses: {e}")
             context['my_courses'] = []
+            context['total_materials'] = 0
+            context['total_students'] = 0
 
     return render(request, 'users/profile.html', context)
-
