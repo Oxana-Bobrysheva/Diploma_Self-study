@@ -32,13 +32,21 @@ class Course(models.Model):
     )
 
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE,
-        related_name="courses",
+        related_name="courses_created",
         verbose_name="Автор курса",
         null=True,
         blank=True,
     )
+
+    students = models.ManyToManyField(
+        'users.User',
+        through='Enrollment',
+        related_name='enrolled_courses',
+        blank=True
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -54,13 +62,7 @@ class Material(models.Model):
     title = models.CharField(
         max_length=250, verbose_name="Материал", help_text="Введите название материала"
     )
-    price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name="Цена материала",
-        help_text="Укажите стоимость материала в рублях",
-        default=0.00,
-    )
+
     content = models.TextField(
         verbose_name="Содержание материала", help_text="Разместите текст или ссылку на файл"
     )
@@ -91,7 +93,7 @@ class Material(models.Model):
     )
 
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE,
         related_name="materials",
         verbose_name="Автор материала",
@@ -112,7 +114,7 @@ class Material(models.Model):
 class Test(models.Model):
     material = models.OneToOneField(Material, on_delete=models.CASCADE, related_name='test')
     questions = models.JSONField()  # Структура: [{"question": "Текст?", "answers": ["A", "B", "C"], "correct": "A"}]
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)  # Преподаватель
+    owner = models.ForeignKey('users.User', on_delete=models.CASCADE, null=True, blank=True)  # Преподаватель
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -120,7 +122,7 @@ class Test(models.Model):
 
 
 class TestResult(models.Model):  # Результаты прохождения тестов
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='test_results', null=True, blank=True)
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='test_results', null=True, blank=True)
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='results')
     answers = models.JSONField()  # Ответы пользователя: {"question1": "A", ...}
     score = models.FloatField()  # Процент правильных (0-100)
@@ -132,32 +134,17 @@ class TestResult(models.Model):  # Результаты прохождения �
 
 
 class Enrollment(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="enrollments",
-        verbose_name="Студент",
-        help_text="Пользователь, записавшийся на курс",
-    )
-    course = models.ForeignKey(
-        Course,
-        on_delete=models.CASCADE,
-        related_name="enrollments",
-        verbose_name="Курс",
-        help_text="Курс, на который записан пользователь",
-    )
-    enrolled_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name="Дата записи",
-        help_text="Когда пользователь записался",
-    )
+    student = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    course = models.ForeignKey('Course', on_delete=models.CASCADE)
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+    progress = models.FloatField(default=0.0)
 
     class Meta:
-        unique_together = ('user', 'course')  # Предотвращает повторные записи
+        unique_together = ('student', 'course')  # Предотвращает повторные записи
         verbose_name = "Запись на курс"
         verbose_name_plural = "Записи на курсы"
         ordering = ["-enrolled_at"]
 
     def __str__(self):
-        return f"{self.user.email} записан на {self.course.title}"
+        return f"{self.student.email} записан на {self.course.title}"
 

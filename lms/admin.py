@@ -11,7 +11,7 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(Material)
 class MaterialAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'price', 'course', 'owner', 'created_at')  # Includes course for context
+    list_display = ('id', 'title', 'course', 'owner', 'created_at')  # Includes course for context
     search_fields = ('title', 'content')  # Search in title/content
     list_filter = ('course', 'owner', 'created_at')  # Filter by course/owner
     readonly_fields = ('created_at',)  # Prevent editing created_at

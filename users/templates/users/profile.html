@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мой профиль{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Profile Info -->
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-header text-center">
+                    <h4><i class="fas fa-user me-2"></i>Мой профиль</h4>
+                </div>
+                <div class="card-body text-center">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="{{ user.name }}"
+                             class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3"
+                             style="width: 150px; height: 150px;">
+                            <i class="fas fa-user fa-3x text-muted"></i>
+                        </div>
+                    {% endif %}
+
+                    <h5>{{ user.name }}</h5>
+                    <p class="text-muted">{{ user.get_role_display }}</p>
+                    <p class="text-muted">{{ user.email }}</p>
+
+                    {% if user.phone %}
+                        <p><i class="fas fa-phone me-2"></i>{{ user.phone }}</p>
+                    {% endif %}
+
+                    {% if user.city %}
+                        <p><i class="fas fa-city me-2"></i>{{ user.city }}</p>
+                    {% endif %}
+
+                    <a href="{% url 'profile_update' %}" class="btn btn-custom mt-3">
+                        <i class="fas fa-edit me-2"></i>Редактировать профиль
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Role-Specific Content -->
+        <div class="col-md-8">
+            {% if user.role == 'student' %}
+                <!-- Student Dashboard -->
+                <div class="card stats-card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-book me-2"></i>Мои курсы</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if enrollments %}
+                            <div class="row">
+                                {% for enrollment in enrollments %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        {% if enrollment.course.preview %}
+                                            <img src="{{ enrollment.course.preview.url }}"
+                                                 class="card-img-top" alt="{{ enrollment.course.title }}"
+                                                 style="height: 120px; object-fit: cover;">
+                                        {% endif %}
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ enrollment.course.title }}</h6>
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    Преподаватель: {{ enrollment.course.owner.name }}<br>
+                                                    Прогресс: {{ enrollment.progress }}%
+                                                </small>
+                                            </p>
+                                            <a href="{% url 'course-detail' enrollment.course.id %}"
+                                               class="btn btn-sm btn-custom w-100">
+                                                {% if enrollment.progress > 0 %}Продолжить{% else %}Начать{% endif %}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Вы еще не записаны на курсы.</p>
+                            <a href="{% url 'course_list' %}" class="btn btn-custom">
+                                <i class="fas fa-search me-2"></i>Найти курсы
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+            {% elif user.role == 'teacher' %}
+                <!-- Teacher Dashboard -->
+                <div class="card stats-card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chalkboard-teacher me-2"></i>Мои курсы</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if my_courses %}
+                            <div class="list-group">
+                                {% for course in my_courses %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ course.title }}</h6>
+                                            <small class="text-muted">
+                                                Студентов: {{ course.students.count }} |
+                                                Материалов: {{ course.material_set.count }}
+                                            </small>
+                                        </div>
+                                        <div>
+                                            <a href="{% url 'course-detail' course.id %}"
+                                               class="btn btn-sm btn-custom me-1">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="#" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Вы еще не создали курсы.</p>
+                            <a href="#" class="btn btn-custom">
+                                <i class="fas fa-plus me-2"></i>Создать курс
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+            {% elif user.role == 'admin' %}
+                <!-- Admin Dashboard -->
+                <div class="card stats-card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-crown me-2"></i>Административная панель</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>У вас есть полный доступ ко всем функциям системы.</p>
+                        <a href="/admin/" class="btn btn-custom me-2">
+                            <i class="fas fa-cog me-2"></i>Админ панель
+                        </a>
+                        <a href="{% url 'course-list' %}" class="btn btn-outline-success">
+                            <i class="fas fa-list me-2"></i>Все курсы
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

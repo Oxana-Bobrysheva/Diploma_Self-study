@@ -1,151 +1,63 @@
-from django.contrib.auth.forms import UserCreationForm
-from django.shortcuts import redirect, render
-from rest_framework import viewsets, permissions
-from django.contrib.auth import get_user_model, login
-from rest_framework.decorators import action, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from .serializers import UserSerializer, ProfileSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import CustomTokenObtainPairSerializer
-from rest_framework.views import APIView
+from django.contrib.auth import login, authenticate
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import User
+from .forms import UserRegistrationForm, ProfileUpdateForm
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework import status
-from django.contrib.auth import authenticate
-import logging
-
-logger = logging.getLogger(__name__)
-
-User = get_user_model()
 
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = UserRegistrationForm(request.POST)
+        print("Form is valid:", form.is_valid())
+        print("Form errors:", form.errors)
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('home')  # Change to your home page name
+            messages.success(request, 'Регистрация прошла успешно!')
+            return redirect('dashboard')  # Redirect to profile page
     else:
-        form = UserCreationForm()
+        form = UserRegistrationForm()
 
     return render(request, 'registration/register.html', {'form': form})
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny]
+@login_required
+def profile(request):
+    """Main profile page - shows different content based on role"""
+    user = request.user
+    context = {'user': user}
 
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return self.queryset.none()
-        if self.request.user.role == 'admin':
-            return self.queryset
-        return self.queryset.filter(id=self.request.user.id)
+    if user.role == 'student':
 
-    @action(detail=False, methods=['get'], url_path='authors-count', permission_classes=[])
-    def authors_count(self, request):
-        """
-        Public endpoint to get total number of authors.
-        URL: /api/users/authors-count/
-        No authentication required.
-        """
-        count = self.queryset.filter(role='teacher').count()
-        return Response({'count': count}, status=status.HTTP_200_OK)
+        context['enrolled_courses'] = user.enrolled_courses.all()
+        context['enrollments'] = user.enrollment_set.all().select_related('course')
 
-    @action(detail=False, methods=['get'], url_path='students-count', permission_classes=[])
-    def students_count(self, request):
-        """
-        Public endpoint to get total number of authors.
-        URL: /api/users/authors-count/
-        No authentication required.
-        """
-        count = self.queryset.filter(role='student').count()
-        return Response({'count': count}, status=status.HTTP_200_OK)
+    elif user.role == 'teacher':
+        context['my_courses'] = user.courses_created.all()
 
-    @action(detail=False, methods=['get', 'put', 'patch'], url_path='me')
-    def me(self, request):
-        """Custom action for /api/profiles/me/ - view/edit own profile."""
-        user = request.user
-        if request.method in ['PUT', 'PATCH']:
-            serializer = self.get_serializer(user, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        # GET request
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
+    return render(request, 'users/profile.html', context)
 
-    @action(detail=False, methods=['get'], url_path='teachers', permission_classes=[AllowAny])
-    def teachers(self, request):
-        # Get all users with role='teacher'
-        teachers = User.objects.filter(role='teacher').prefetch_related('courses')
+@login_required
+def profile_update(request):
+    """Update profile information"""
+    if request.method == 'POST':
+        form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Профиль успешно обновлен!')
+            return redirect('profile')
+    else:
+        form = ProfileUpdateForm(instance=request.user)
 
-        data = []
-        for teacher in teachers:
-            data.append({
-                'id': teacher.id,
-                'name': teacher.name,
-                'avatar': teacher.avatar.url if teacher.avatar else None,
-                'courses': [
-                    {'id': course.id, 'title': course.title}
-                    for course in teacher.courses.all()
-                ]
-            })
-
-        return Response(data, status=status.HTTP_200_OK)
+    return render(request, 'users/profile_update.html', {'form': form})
 
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
-
-class RegisterView(APIView):
-    serializer_class = UserSerializer
-    authentication_classes = []
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        logger.info("RegisterView POST hit!")
-
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            user.set_password(request.data['password'])  # Hash password
-            user.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@permission_classes([AllowAny])
-class LoginView(APIView):
-    def post(self, request):
-
-        email = request.data.get('email')
-        password = request.data.get('password')
-
-
-        if not email or not password:
-            return Response({'error': 'Email and password required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        user = authenticate(request, email=email, password=password)  # Added 'request' for completeness
-
-        if user is not None:
-            # Use your custom serializer for token
-            serializer = CustomTokenObtainPairSerializer(data=request.data)
-            if serializer.is_valid():
-                return Response(serializer.validated_data, status=status.HTTP_200_OK)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-class ProfileUpdateView(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure user is logged in
-
-    def post(self, request):
-        serializer = ProfileSerializer(instance=request.user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['GET'])
+def teachers_list_api(request):
+    """API endpoint for teachers list (if needed for AJAX)"""
+    teachers = User.objects.filter(role='teacher')
+    data = [{'id': t.id, 'name': t.name, 'avatar': t.avatar.url if t.avatar else None}
+            for t in teachers]
+    return Response(data)

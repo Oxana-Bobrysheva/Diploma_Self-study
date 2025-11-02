@@ -72,7 +72,7 @@ def course_detail_template(request, course_id):
     if request.user.is_authenticated:
         # Additional info for authenticated users
         user_enrolled = Enrollment.objects.filter(
-            user=request.user,
+            student=request.user,
             course=course
         ).exists()
 
@@ -110,17 +110,52 @@ def enroll_course_template(request, course_id):
 
     return redirect('course_detail_template', course_id=course_id)
 
+
 @login_required
 def my_courses_template(request):
     """Display user's enrolled courses"""
     # You can implement this later
     return render(request, 'lms/my_courses.html')
 
+
 @login_required
 def profile(request):
-    """User profile page"""
-    # You can implement this later
-    return render(request, 'users/profile.html')
+    """Main profile page - shows different content based on role"""
+    user = request.user
+    context = {'user': user}
+
+    if user.role == 'student':
+        # Use the correct relationship name
+        try:
+            # Option 1: Use enrolled_courses (ManyToMany through Enrollment)
+            if hasattr(user, 'enrolled_courses'):
+                context['courses'] = user.enrolled_courses.all()
+
+            # Option 2: Use enrollment_set to get Enrollment objects with progress
+            if hasattr(user, 'enrollment_set'):
+                context['enrollments'] = user.enrollment_set.all().select_related('course')
+            else:
+                # Fallback: direct database query
+                from lms.models import Enrollment
+                context['enrollments'] = Enrollment.objects.filter(student=user).select_related('course')
+        except Exception as e:
+            print(f"Error getting student data: {e}")
+            context['enrollments'] = []
+
+    elif user.role == 'teacher':
+        # Use courses_created relationship
+        try:
+            if hasattr(user, 'courses_created'):
+                context['my_courses'] = user.courses_created.all()
+            else:
+                # Fallback: direct database query
+                from lms.models import Course
+                context['my_courses'] = Course.objects.filter(owner=user)
+        except Exception as e:
+            print(f"Error getting teacher courses: {e}")
+            context['my_courses'] = []
+
+    return render(request, 'users/profile.html', context)
 
 
 class CourseViewSet(viewsets.ModelViewSet):

@@ -4,6 +4,8 @@ from django.http import HttpResponse
 from django.urls import path, include
 from lms.views import dashboard
 from users.views import register
+from django.conf import settings
+from django.conf.urls.static import static
 
 def test_view(request):
     return HttpResponse("Test view works!")
@@ -25,3 +27,5 @@ urlpatterns = [
     path('test/', test_view, name='test'),
 ]
 
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
