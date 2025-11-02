@@ -1,161 +1,21 @@
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db import models
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import redirect, render, get_object_or_404
+from django.views.generic import TemplateView
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .forms import CourseForm
 from .models import Course, Material, Test, TestResult, Enrollment, User
 from .serializers import CourseSerializer, MaterialSerializer, TestSerializer, TestResultSerializer, \
-    EnrollmentSerializer
+    EnrollmentSerializer, CourseListSerializer
 from .permissions import IsTeacherOrAdmin, IsCourseOwnerOrAdmin, IsStudentOrSubscribed
-
-
-def course_list_template(request):
-    """Display all courses with platform statistics - PUBLIC ACCESS"""
-
-    courses = Course.objects.all().prefetch_related('materials', 'owner')
-
-    # Comprehensive platform statistics for courses page
-    total_courses = Course.objects.count()
-    total_materials = Material.objects.count()
-    total_tests = Test.objects.count()
-    total_teachers = User.objects.filter(role='teacher').count()
-    total_enrollments = Enrollment.objects.count()
-
-    # Search functionality
-    search_query = request.GET.get('search', '')
-    if search_query:
-        courses = courses.filter(
-            Q(title__icontains=search_query) |
-            Q(description__icontains=search_query)
-        )
-
-    # Annotate individual courses with their own stats
-    courses = courses.annotate(
-        materials_count=Count('materials'),
-        tests_count=Count('materials__test')
-    )
-
-    return render(request, 'lms/course_list.html', {
-        'courses': courses,
-        'total_courses': total_courses,
-        'total_materials': total_materials,
-        'total_tests': total_tests,
-        'total_teachers': total_teachers,
-        'total_enrollments': total_enrollments,
-        'search_query': search_query,
-        'user_is_authenticated': request.user.is_authenticated,
-    })
-
-
-def course_detail_template(request, course_id):
-    """Display course details with different access levels"""
-    course = get_object_or_404(Course, id=course_id)
-    print("DEBUG: Course fields:", [f.name for f in course._meta.get_fields()])
-    print("DEBUG: Course related objects:", [f for f in course._meta.get_fields() if f.is_relation])
-    # Basic course statistics (available to everyone)
-    materials_count = course.materials.count()
-    tests_count = course.materials.filter(test__isnull=False).count()
-
-    context = {
-        'course': course,
-        'materials_count': materials_count,
-        'tests_count': tests_count,
-        'user_is_authenticated': request.user.is_authenticated,
-    }
-
-    if request.user.is_authenticated:
-        # Additional info for authenticated users
-        user_enrolled = Enrollment.objects.filter(
-            student=request.user,
-            course=course
-        ).exists()
-
-        if user_enrolled:
-            # Full access for enrolled students
-            materials = course.materials.all().prefetch_related('test')
-            context.update({
-                'user_enrolled': True,
-                'materials': materials,
-            })
-        else:
-            # Limited access for authenticated but not enrolled
-            context.update({
-                'user_enrolled': False,
-            })
-
-    return render(request, 'lms/course_detail.html', context)
-
-
-@login_required
-def enroll_course_template(request, course_id):
-    """Handle course enrollment via template"""
-    course = get_object_or_404(Course, id=course_id)
-
-    # Check if already enrolled
-    enrollment, created = Enrollment.objects.get_or_create(
-        user=request.user,
-        course=course
-    )
-
-    if created:
-        messages.success(request, f'Successfully enrolled in {course.title}!')
-    else:
-        messages.info(request, f'You are already enrolled in {course.title}')
-
-    return redirect('course_detail_template', course_id=course_id)
-
-
-@login_required
-def my_courses_template(request):
-    """Display user's enrolled courses"""
-    # You can implement this later
-    return render(request, 'lms/my_courses.html')
-
-
-@login_required
-def profile(request):
-    """Main profile page - shows different content based on role"""
-    user = request.user
-    context = {'user': user}
-
-    if user.role == 'student':
-        # Use the correct relationship name
-        try:
-            # Option 1: Use enrolled_courses (ManyToMany through Enrollment)
-            if hasattr(user, 'enrolled_courses'):
-                context['courses'] = user.enrolled_courses.all()
-
-            # Option 2: Use enrollment_set to get Enrollment objects with progress
-            if hasattr(user, 'enrollment_set'):
-                context['enrollments'] = user.enrollment_set.all().select_related('course')
-            else:
-                # Fallback: direct database query
-                from lms.models import Enrollment
-                context['enrollments'] = Enrollment.objects.filter(student=user).select_related('course')
-        except Exception as e:
-            print(f"Error getting student data: {e}")
-            context['enrollments'] = []
-
-    elif user.role == 'teacher':
-        # Use courses_created relationship
-        try:
-            if hasattr(user, 'courses_created'):
-                context['my_courses'] = user.courses_created.all()
-            else:
-                # Fallback: direct database query
-                from lms.models import Course
-                context['my_courses'] = Course.objects.filter(owner=user)
-        except Exception as e:
-            print(f"Error getting teacher courses: {e}")
-            context['my_courses'] = []
-
-    return render(request, 'users/profile.html', context)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -164,16 +24,13 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'list':
-            return [permissions.AllowAny()]  # Все могут видеть список курсов
+            return [permissions.AllowAny()]
         elif self.action == 'retrieve':
-            return [permissions.IsAuthenticated()]  # Аутентифицированные могут видеть детали
-        elif self.action in ['create']:
-            return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]  # Только учителя и админы могут создавать
-        elif self.action in ['update', 'partial_update', 'destroy', 'edit', 'add_material']:
-            return [permissions.IsAuthenticated(),
-                    IsCourseOwnerOrAdmin()]  # Только владельцы и админы могут редактировать
-        else:
             return [permissions.IsAuthenticated()]
+        elif self.action == 'create':
+            return [permissions.IsAuthenticated(), IsTeacherOrAdmin()]
+        else:  # update, partial_update, destroy, edit, add_material
+            return [permissions.IsAuthenticated(), IsCourseOwnerOrAdmin()]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)  # Автоматически устанавливаем владельца
@@ -190,23 +47,165 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='add-material')
     def add_material(self, request, pk=None):
         course = self.get_object()
-        print(f"DEBUG: Adding material - User: {request.user}, Course owner: {course.owner}")
-
+        if not (request.user.is_superuser or request.user == course.owner):
+            return Response(
+                {"error": "У вас нет прав добавления материалов в этот курс"},
+                status=status.HTTP_403_FORBIDDEN
+            )
         # Создаем копию данных и добавляем курс и владельца
         material_data = request.data.copy()
-
         serializer = MaterialSerializer(data=material_data)
+
         if serializer.is_valid():
             # Сохраняем материал с привязкой к курсу и текущему пользователю как владельцу
             material = serializer.save(
                 course=course,
                 owner=request.user
             )
-            print(f"DEBUG: Material created successfully - ID: {material.id}")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        print(f"DEBUG: Serializer errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CourseListView(TemplateView):
+    template_name = 'lms/course_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Get and filter courses (same logic as before)
+        courses = Course.objects.all().prefetch_related('materials', 'owner')
+
+        # Search functionality (same as before)
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            courses = courses.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+
+        # Annotate courses (same as before)
+        courses = courses.annotate(
+            materials_count=Count('materials'),
+            tests_count=Count('materials__test')
+        )
+
+        # ✅ USE YOUR NEW SERIALIZER
+        serializer = CourseListSerializer(courses, many=True, context={'request': self.request})
+
+        # Platform statistics (same as before)
+        context.update({
+            'courses': courses,  # Keep original QuerySet for template
+            'serialized_courses': serializer.data,  # For diploma requirements
+            'total_courses': Course.objects.count(),
+            'total_materials': Material.objects.count(),
+            'total_tests': Test.objects.count(),
+            'total_teachers': User.objects.filter(role='teacher').count(),
+            'total_enrollments': Enrollment.objects.count(),
+            'search_query': search_query,
+            'user_is_authenticated': self.request.user.is_authenticated,
+        })
+        return context
+
+
+class CourseEditView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'lms/course_edit.html'
+
+    def test_func(self):
+        """Only course owner or admin can edit"""
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+        return self.request.user == course.owner or self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+
+        # Use serializer for data preparation
+        serializer = CourseSerializer(course, context={'request': self.request})
+
+        context.update({
+            'course': course,
+            'form': CourseForm(instance=course),  # Your existing form
+            'serialized_course': serializer.data,  # For diploma requirements
+            'title': f'Редактирование курса: {course.title}'
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+
+        # Check permission again
+        if not (request.user == course.owner or request.user.is_superuser):
+            messages.error(request, "У вас нет прав для редактирования этого курса")
+            return redirect('course-detail', course_id=course_id)
+
+        form = CourseForm(request.POST, request.FILES, instance=course)
+        if form.is_valid():
+            # Use serializer for validation (diploma requirement)
+            serializer = CourseSerializer(
+                course,
+                data=request.POST,
+                context={'request': request},
+                partial=True  # Allow partial updates
+            )
+
+            if serializer.is_valid():
+                form.save()
+                messages.success(request, 'Курс успешно обновлен!')
+                return redirect('course-detail', course_id=course_id)
+            else:
+                # Add serializer errors to form
+                for field, errors in serializer.errors.items():
+                    for error in errors:
+                        form.add_error(field, error)
+
+        return self.render_to_response({
+            'form': form,
+            'course': course,
+            'title': f'Редактирование курса: {course.title}'
+        })
+
+
+class CourseDeleteView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'lms/course_confirm_delete.html'
+
+    def test_func(self):
+        """Only course owner or admin can delete"""
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+        return self.request.user == course.owner or self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+
+        context.update({
+            'course': course,
+            'title': f'Удаление курса: {course.title}'
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+
+        # Check permission again
+        if not (request.user == course.owner or request.user.is_superuser):
+            messages.error(request, "У вас нет прав для удаления этого курса")
+            return redirect('course-detail', course_id=course_id)
+
+        # Use serializer for diploma requirements (optional validation)
+        serializer = CourseSerializer(course, context={'request': request})
+
+        course_title = course.title
+        course.delete()
+
+        messages.success(request, f'Курс "{course_title}" успешно удален!')
+        return redirect('course_list')
 
 
 class MaterialViewSet(viewsets.ModelViewSet):
@@ -223,6 +222,42 @@ class MaterialViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+
+class MaterialDetailView(LoginRequiredMixin, TemplateView):
+    template_name = 'lms/material_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        material_id = self.kwargs['material_id']
+        material = get_object_or_404(Material.objects.select_related('course', 'owner'), id=material_id)
+
+        # Check permissions
+        is_owner = self.request.user == material.owner or self.request.user.is_superuser
+        is_course_owner = self.request.user == material.course.owner
+        can_edit = is_owner or is_course_owner
+
+        # Get test if exists
+        test = None
+        try:
+            test = material.test
+        except Test.DoesNotExist:
+            pass
+
+        # ✅ USE YOUR EXISTING MaterialSerializer
+        material_serializer = MaterialSerializer(material, context={'request': self.request})
+        test_serializer = TestSerializer(test, context={'request': self.request}) if test else None
+
+        context.update({
+            'material': material,
+            'test': test,
+            'is_owner': is_owner,
+            'is_course_owner': is_course_owner,
+            'can_edit': can_edit,
+            'has_test': test is not None,
+            'serialized_material': material_serializer.data,  # ✅ For diploma requirements
+            'serialized_test': test_serializer.data if test_serializer else None,  # ✅ For diploma requirements
+        })
+        return context
 
 class TestViewSet(viewsets.ModelViewSet):
     queryset = Test.objects.all()
@@ -367,3 +402,130 @@ def author_courses(request, teacher_id):
         'teacher': teacher,
         'courses': courses
     })
+
+
+@login_required
+def course_create(request):
+    if request.user.role != 'teacher':
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = CourseForm(request.POST, request.FILES)
+        if form.is_valid():
+            course = form.save(commit=False)
+            course.owner = request.user  # Set the current user as owner
+            course.save()
+            messages.success(request, 'Курс успешно создан!')
+            return redirect('course-detail', course_id=course.id)
+    else:
+        form = CourseForm()
+
+    return render(request, 'lms/course_form.html', {'form': form, 'title': 'Создание курса'})
+
+
+def course_detail_template(request, course_id):
+    """Display course details with different access levels"""
+    course = get_object_or_404(Course, id=course_id)
+    is_teacher = request.user.is_authenticated and request.user.role == 'teacher'
+    is_owner = request.user.is_authenticated and course.owner == request.user
+    is_enrolled = request.user.is_authenticated and course.students.filter(id=request.user.id).exists()
+    materials_count = course.materials.count()
+    tests_count = course.materials.filter(test__isnull=False).count()
+    materials = course.materials.all()
+    tests = Test.objects.filter(material__course=course).distinct()
+
+    context = {
+        'course': course,
+        'materials_count': materials_count,
+        'tests_count': tests_count,
+        'is_teacher': is_teacher,
+        'is_owner': is_owner,  # This is the key - only TRUE if user owns the course
+        'is_enrolled': is_enrolled,
+        'materials': materials,
+        'tests': tests
+    }
+
+    # ONLY show teacher tools if user is the actual owner
+    if is_owner:
+        context['enrollments'] = Enrollment.objects.filter(course=course).select_related('student')
+        context['show_teacher_tools'] = True
+
+    # Rest of your existing code...
+    if request.user.is_authenticated:
+        user_enrolled = Enrollment.objects.filter(
+            student=request.user,
+            course=course
+        ).exists()
+
+        if user_enrolled:
+            materials = course.materials.all().prefetch_related('test')
+            context.update({
+                'user_enrolled': True,
+                'materials': materials,
+            })
+        else:
+            context.update({
+                'user_enrolled': False,
+            })
+
+    return render(request, 'lms/course_detail.html', context)
+
+
+@login_required
+def enroll_course_template(request, course_id):
+    """Handle course enrollment via template"""
+    course = get_object_or_404(Course, id=course_id)
+
+    # Check if already enrolled
+    enrollment, created = Enrollment.objects.get_or_create(
+        user=request.user,
+        course=course
+    )
+
+    if created:
+        messages.success(request, f'Successfully enrolled in {course.title}!')
+    else:
+        messages.info(request, f'You are already enrolled in {course.title}')
+
+    return redirect('course_detail_template', course_id=course_id)
+
+
+@login_required
+def profile(request):
+    """Main profile page - shows different content based on role"""
+    user = request.user
+    context = {'user': user}
+
+    if user.role == 'student':
+        # Use the correct relationship name
+        try:
+            # Option 1: Use enrolled_courses (ManyToMany through Enrollment)
+            if hasattr(user, 'enrolled_courses'):
+                context['courses'] = user.enrolled_courses.all()
+
+            # Option 2: Use enrollment_set to get Enrollment objects with progress
+            if hasattr(user, 'enrollment_set'):
+                context['enrollments'] = user.enrollment_set.all().select_related('course')
+            else:
+                # Fallback: direct database query
+                from lms.models import Enrollment
+                context['enrollments'] = Enrollment.objects.filter(student=user).select_related('course')
+        except Exception as e:
+            print(f"Error getting student data: {e}")
+            context['enrollments'] = []
+
+    elif user.role == 'teacher':
+        # Use courses_created relationship
+        try:
+            if hasattr(user, 'courses_created'):
+                context['my_courses'] = user.courses_created.all()
+            else:
+                # Fallback: direct database query
+                from lms.models import Course
+                context['my_courses'] = Course.objects.filter(owner=user)
+        except Exception as e:
+            print(f"Error getting teacher courses: {e}")
+            context['my_courses'] = []
+
+    return render(request, 'users/profile.html', context)
+

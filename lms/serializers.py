@@ -41,3 +41,51 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         model = Enrollment
         fields = ['id', 'user', 'course', 'enrolled_at']
         read_only_fields = ['user', 'enrolled_at']
+
+
+class CourseListSerializer(serializers.ModelSerializer):
+    """Serializer for course list page - extends your existing CourseSerializer"""
+    materials_count = serializers.SerializerMethodField()
+    tests_count = serializers.SerializerMethodField()
+    owner_name = serializers.CharField(source='owner.username', read_only=True)
+
+    class Meta:
+        model = Course
+        fields = ['id', 'title', 'description', 'preview', 'price', 'owner_name',
+                  'materials_count', 'tests_count', 'created_at']
+
+    def get_materials_count(self, obj):
+        return obj.materials.count()
+
+    def get_tests_count(self, obj):
+        return obj.materials.filter(test__isnull=False).count()
+
+
+class CourseDetailSerializer(serializers.ModelSerializer):
+    """Serializer for course detail page - extends your existing CourseSerializer"""
+    materials = MaterialSerializer(many=True, read_only=True)
+    is_owner = serializers.SerializerMethodField()
+    is_enrolled = serializers.SerializerMethodField()
+    materials_count = serializers.SerializerMethodField()
+    tests_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = '__all__'
+        # Or specify exact fields if you prefer
+
+    def get_is_owner(self, obj):
+        request = self.context.get('request')
+        return request.user == obj.owner if request and request.user.is_authenticated else False
+
+    def get_is_enrolled(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.students.filter(id=request.user.id).exists()
+        return False
+
+    def get_materials_count(self, obj):
+        return obj.materials.count()
+
+    def get_tests_count(self, obj):
+        return obj.materials.filter(test__isnull=False).count()

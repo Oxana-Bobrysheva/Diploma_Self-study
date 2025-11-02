@@ -1,14 +1,11 @@
 from django.contrib.auth import views as auth_views
 from django.contrib import admin
-from django.http import HttpResponse
 from django.urls import path, include
 from lms.views import dashboard
 from users.views import register
 from django.conf import settings
 from django.conf.urls.static import static
 
-def test_view(request):
-    return HttpResponse("Test view works!")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,7 +21,7 @@ urlpatterns = [
     path('lms/', include('lms.urls')),  # Your LMS app URLs
     path('users/', include('users.urls')),  # Your users app URLs
 
-    path('test/', test_view, name='test'),
+    # path('test/', test_view, name='test'),
 ]
 
 if settings.DEBUG:

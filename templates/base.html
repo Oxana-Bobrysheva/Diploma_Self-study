@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Learning Platform</title>
+    <title>Знайки - платформа самообразования</title>
 
     {% load static %}
 
@@ -39,46 +39,45 @@
                 <!-- Left side menu items - visible to all -->
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link nav-link-custom" href="{% url 'course_list' %}">Courses</a>
+                        <a class="nav-link nav-link-custom" href="{% url 'course_list' %}">Курсы</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-custom" href="{% url 'authors' %}">Authors</a>
+                        <a class="nav-link nav-link-custom" href="{% url 'authors' %}">Авторы</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-custom" href="{% url 'discussions' %}">Discussions</a>
+                        <a class="nav-link nav-link-custom" href="{% url 'discussions' %}">Обсуждения</a>
                     </li>
                 </ul>
 
                 <!-- Right side - auth buttons -->
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle btn-custom" href="#" role="button" data-bs-toggle="dropdown">
-                            {% if user.name %}{{ user.name }}{% else %}{{ user.email }}{% endif %}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'profile' %}">Profile</a></li>
-                            <li><a class="dropdown-item" href="{% url 'my_courses_template' %}">My Courses</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="post" action="{% url 'logout' %}" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="dropdown-item border-0 bg-transparent w-100 text-start">
-                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link btn-custom" href="{% url 'login' %}">Login</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn-custom" style="background-color: var(--dark-green);"
-                           href="{% url 'register' %}">Register</a>
-                    </li>
-                    {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom" href="{% url 'profile' %}">
+                                <i class="fas fa-user me-1"></i>Профиль: {{user.name}}
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <form method="post" action="{% url 'logout' %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="nav-link nav-link-custom border-0 bg-transparent" style="cursor: pointer;">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Выйти
+                                </button>
+                            </form>
+                        </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom" href="{% url 'login' %}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Войти
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom" href="{% url 'register' %}">
+                                <i class="fas fa-user-plus me-1"></i>Зарегистрироваться
+                            </a>
+                        </li>
+                        {% endif %}
                 </ul>
             </div>
         </div>
@@ -121,27 +120,27 @@
                             <p class="mb-0" style="font-size: 0.9rem;">Хочу все знать!</p>
                         </div>
                     </div>
-                    <p class="mt-2 mb-0">Your gateway to knowledge and skills development</p>
+                    <p class="mt-2 mb-0">Твой проводник к знаниям и развитию навыков</p>
                 </div>
                 <div class="col-md-3">
-                    <h5>Contact</h5>
+                    <h5>Контакт</h5>
                     <ul class="list-unstyled">
-                        <li>Email: bobrysheva_oxana@mail.ru</li>
-                        <li>Phone: +7 (906) 689-73-19</li>
-                        <li>Address: Kursk region, Russia</li>
+                        <li>Почта: bobrysheva_oxana@mail.ru</li>
+                        <li>Телефон: +7 (906) 689-73-19</li>
+                        <li>Адрес: Россия, Курская область</li>
                     </ul>
                 </div>
                 <div class="col-md-3">
-                    <h5>Legal</h5>
+                    <h5>Права</h5>
                     <ul class="list-unstyled">
-                        <li><a href="#" class="text-dark">Privacy Policy</a></li>
-                        <li><a href="#" class="text-dark">Terms of Service</a></li>
+                        <li><a href="#" class="text-dark">Право собственности</a></li>
+                        <li><a href="#" class="text-dark">Условия обслуживания</a></li>
                     </ul>
                 </div>
             </div>
             <hr class="my-4">
             <div class="text-center">
-                <p class="mb-0">&copy; 2025 Знайки Platform. All rights reserved. | Production Date: {% now "F Y" %}</p>
+                <p class="mb-0">&copy; 2025 Платформа Знайки. All rights reserved. | Production Date: {% now "F Y" %}</p>
             </div>
         </div>
     </footer>

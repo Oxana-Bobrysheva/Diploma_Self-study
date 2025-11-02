@@ -115,3 +115,43 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 8px;
     display: block;
 }
+
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 12px 15px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    outline: none;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-left: none;
+}
+
+/* Make file input look better */
+.form-control[type="file"] {
+    padding: 8px 15px;
+}
+
+/* Required field indicator */
+.form-label:has(+ [required])::after {
+    content: " *";
+    color: #dc3545;
+}
