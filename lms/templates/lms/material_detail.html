@@ -20,9 +20,18 @@
                     <h4 class="mb-0">{{ material.title }}</h4>
                     {% if can_edit %}
                     <div>
-                        <a href="#" class="btn btn-warning btn-sm">
+                        <!-- EDIT BUTTON -->
+                        <a href="{% url 'material-edit' material.course.id material.id %}" class="btn btn-warning btn-sm me-1">
                             <i class="fas fa-edit me-1"></i>Редактировать
                         </a>
+                        <!-- DELETE BUTTON -->
+                        <form action="{% url 'material-delete' material.course.id material.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Вы уверены, что хотите удалить этот материал?')">
+                                <i class="fas fa-trash me-1"></i>Удалить
+                            </button>
+                        </form>
                     </div>
                     {% endif %}
                 </div>
@@ -34,8 +43,23 @@
                     {% endif %}
 
                     <div class="material-content">
+                        <h5>Содержание</h5>
                         {{ material.content|linebreaks }}
                     </div>
+
+                    <!-- VIDEO LINK - ADDED -->
+                    {% if material.video_link %}
+                    <div class="mt-4">
+                        <h5><i class="fas fa-video me-2"></i>Видео материал</h5>
+                        <div class="embed-responsive embed-responsive-16by9">
+                            <!-- Simple link for now - you can embed later -->
+                            <a href="{{ material.video_link }}" target="_blank" class="btn btn-primary">
+                                <i class="fas fa-external-link-alt me-1"></i>Смотреть видео
+                            </a>
+                            <small class="form-text text-muted">{{ material.video_link }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
 
                     {% if material.additional_files %}
                     <div class="mt-4">
@@ -49,8 +73,8 @@
                 <div class="card-footer text-muted">
                     <small>
                         Создано: {{ material.created_at|date:"d.m.Y H:i" }}
-                        {% if material.updated_at != material.created_at %}
-                        | Обновлено: {{ material.updated_at|date:"d.m.Y H:i" }}
+                        {% if material.owner %}
+                        | Автор: {{ material.owner.username }}
                         {% endif %}
                     </small>
                 </div>
@@ -115,7 +139,7 @@
                     <h6 class="card-title">Информация о курсе</h6>
                     <p class="card-text">
                         <strong>Курс:</strong> {{ material.course.title }}<br>
-                        <strong>Автор:</strong> {{ material.course.owner.username }}<br>
+                        <strong>Автор курса:</strong> {{ material.course.owner.username }}<br>
                         <strong>Материалов в курсе:</strong> {{ material.course.materials.count }}
                     </p>
                     <a href="{% url 'course-detail' material.course.id %}" class="btn btn-outline-primary btn-sm">

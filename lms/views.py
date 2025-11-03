@@ -18,6 +18,107 @@ from .serializers import CourseSerializer, MaterialSerializer, TestSerializer, T
 from .permissions import IsTeacherOrAdmin, IsCourseOwnerOrAdmin, IsStudentOrSubscribed
 
 
+class CourseCreateView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'lms/course_form.html'
+
+    def test_func(self):
+        """Only teachers can create courses"""
+        return self.request.user.role == 'teacher'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Создание курса'
+        context['form'] = CourseForm()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        if request.user.role != 'teacher':
+            messages.error(request, "Только преподаватели могут создавать курсы")
+            return redirect('dashboard')
+
+        form = CourseForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Use serializer for validation (diploma requirement)
+            from .serializers import CourseSerializer
+            serializer = CourseSerializer(data=request.POST, context={'request': request})
+
+            if serializer.is_valid():
+                course = form.save(commit=False)
+                course.owner = request.user
+                course.save()
+                messages.success(request, 'Курс успешно создан!')
+                return redirect('course-detail', course_id=course.id)
+            else:
+                # Add serializer errors to form
+                for field, errors in serializer.errors.items():
+                    for error in errors:
+                        form.add_error(field, error)
+
+        return self.render_to_response({
+            'form': form,
+            'title': 'Создание курса'
+        })
+
+
+class CourseDetailView(LoginRequiredMixin, TemplateView):
+    template_name = 'lms/course_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        course_id = self.kwargs['course_id']
+        course = get_object_or_404(Course, id=course_id)
+
+        is_teacher = self.request.user.is_authenticated and self.request.user.role == 'teacher'
+        is_owner = self.request.user.is_authenticated and course.owner == self.request.user
+        is_enrolled = self.request.user.is_authenticated and course.students.filter(id=self.request.user.id).exists()
+
+        materials_count = course.materials.count()
+        tests_count = course.materials.filter(test__isnull=False).count()
+        materials = course.materials.all()
+        tests = Test.objects.filter(material__course=course).distinct()
+
+        context.update({
+            'course': course,
+            'materials_count': materials_count,
+            'tests_count': tests_count,
+            'is_teacher': is_teacher,
+            'is_owner': is_owner,
+            'is_enrolled': is_enrolled,
+            'materials': materials,
+            'tests': tests
+        })
+
+        # ONLY show teacher tools if user is the actual owner
+        if is_owner:
+            context['enrollments'] = Enrollment.objects.filter(course=course).select_related('student')
+            context['show_teacher_tools'] = True
+
+        # Student enrollment check
+        if self.request.user.is_authenticated:
+            user_enrolled = Enrollment.objects.filter(
+                student=self.request.user,
+                course=course
+            ).exists()
+
+            if user_enrolled:
+                materials = course.materials.all().prefetch_related('test')
+                context.update({
+                    'user_enrolled': True,
+                    'materials': materials,
+                })
+            else:
+                context.update({
+                    'user_enrolled': False,
+                })
+
+        # Use serializer for diploma requirements
+        from .serializers import CourseSerializer
+        serializer = CourseSerializer(course, context={'request': self.request})
+        context['serialized_course'] = serializer.data
+
+        return context
+
+
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.prefetch_related('materials').all()
     serializer_class = CourseSerializer
@@ -229,7 +330,10 @@ class MaterialDetailView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         material_id = self.kwargs['material_id']
-        material = get_object_or_404(Material.objects.select_related('course', 'owner'), id=material_id)
+        material = get_object_or_404(
+            Material.objects.select_related('course', 'owner'),
+            id=material_id
+        )
 
         # Check permissions
         is_owner = self.request.user == material.owner or self.request.user.is_superuser
@@ -243,7 +347,7 @@ class MaterialDetailView(LoginRequiredMixin, TemplateView):
         except Test.DoesNotExist:
             pass
 
-        # ✅ USE YOUR EXISTING MaterialSerializer
+        # Use serializer for data
         material_serializer = MaterialSerializer(material, context={'request': self.request})
         test_serializer = TestSerializer(test, context={'request': self.request}) if test else None
 
@@ -254,8 +358,8 @@ class MaterialDetailView(LoginRequiredMixin, TemplateView):
             'is_course_owner': is_course_owner,
             'can_edit': can_edit,
             'has_test': test is not None,
-            'serialized_material': material_serializer.data,  # ✅ For diploma requirements
-            'serialized_test': test_serializer.data if test_serializer else None,  # ✅ For diploma requirements
+            'serialized_material': material_serializer.data,
+            'serialized_test': test_serializer.data if test_serializer else None,
         })
         return context
 
@@ -291,24 +395,21 @@ class MaterialCreateView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             messages.error(request, "У вас нет прав для добавления материалов в этот курс")
             return redirect('course-detail', course_id=course_id)
 
-        # Prepare data for serializer validation
-        material_data = {
+        # Validate only non-file fields with serializer
+        validation_data = {
             'title': request.POST.get('title'),
             'content': request.POST.get('content'),
             'video_link': request.POST.get('video_link', ''),
-            'course': course.id,
-            'owner': request.user.id
         }
 
-        # Validate with serializer
-        serializer = MaterialSerializer(data=material_data, context={'request': request})
+        serializer = MaterialSerializer(data=validation_data, context={'request': request})
 
         if serializer.is_valid():
-            # Create material with all actual fields
+            # Create material directly
             material = Material(
-                title=material_data['title'],
-                content=material_data['content'],
-                video_link=material_data['video_link'],
+                title=validation_data['title'],
+                content=validation_data['content'],
+                video_link=validation_data['video_link'],
                 course=course,
                 owner=request.user
             )
@@ -329,6 +430,131 @@ class MaterialCreateView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
                 'errors': serializer.errors,
                 'form_data': request.POST
             })
+
+
+class MaterialEditView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'lms/material_form.html'
+
+    def test_func(self):
+        """Only material owner or course owner can edit"""
+        material_id = self.kwargs['material_id']
+        material = get_object_or_404(Material, id=material_id)
+        return (self.request.user == material.owner or
+                self.request.user == material.course.owner or
+                self.request.user.is_superuser)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        material_id = self.kwargs['material_id']
+        course_id = self.kwargs['course_id']
+        material = get_object_or_404(Material, id=material_id)
+        course = get_object_or_404(Course, id=course_id)
+
+        context.update({
+            'course': course,
+            'material': material,
+            'title': f'Редактирование материала: {material.title}',
+            'is_edit': True,
+            'form_data': {
+                'title': material.title,
+                'content': material.content,
+                'video_link': material.video_link or '',
+            }
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        material_id = self.kwargs['material_id']
+        course_id = self.kwargs['course_id']
+        material = get_object_or_404(Material, id=material_id)
+        course = get_object_or_404(Course, id=course_id)
+
+        # Check permission again
+        if not (request.user == material.owner or request.user == material.course.owner
+                or request.user.is_superuser):
+            messages.error(request, "У вас нет прав для редактирования этого материала")
+            return redirect('material-detail', material_id=material_id)
+
+        # Validate with serializer
+        validation_data = {
+            'title': request.POST.get('title'),
+            'content': request.POST.get('content'),
+            'video_link': request.POST.get('video_link', ''),
+        }
+
+        serializer = MaterialSerializer(instance=material, data=validation_data,
+                                        context={'request': request})
+
+        if serializer.is_valid():
+            # Update material
+            material.title = validation_data['title']
+            material.content = validation_data['content']
+            material.video_link = validation_data['video_link']
+            # No description field - removed
+
+            # Handle file updates
+            if request.FILES.get('illustration'):
+                material.illustration = request.FILES['illustration']
+
+            material.save()
+
+            messages.success(request, 'Материал успешно обновлен!')
+            return redirect('material-detail', material_id=material_id)
+        else:
+            # Return form with errors
+            return self.render_to_response({
+                'course': course,
+                'material': material,
+                'title': f'Редактирование материала: {material.title}',
+                'is_edit': True,
+                'errors': serializer.errors,
+                'form_data': request.POST
+            })
+
+
+class MaterialDeleteView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'lms/material_confirm_delete.html'
+
+    def test_func(self):
+        """Only material owner or course owner can delete"""
+        material_id = self.kwargs['material_id']
+        material = get_object_or_404(Material, id=material_id)
+        return (self.request.user == material.owner or
+                self.request.user == material.course.owner or
+                self.request.user.is_superuser)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        material_id = self.kwargs['material_id']
+        course_id = self.kwargs['course_id']
+        material = get_object_or_404(Material, id=material_id)
+        course = get_object_or_404(Course, id=course_id)
+
+        context.update({
+            'course': course,
+            'material': material,
+            'title': f'Удаление материала'
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        material_id = self.kwargs['material_id']
+        course_id = self.kwargs['course_id']
+        material = get_object_or_404(Material, id=material_id)
+        course = get_object_or_404(Course, id=course_id)
+
+        # Check permission again
+        if not (request.user == material.owner or request.user == material.course.owner or request.user.is_superuser):
+            messages.error(request, "У вас нет прав для удаления этого материала")
+            return redirect('material-detail', material_id=material_id)
+
+        # Delete the material
+        material_title = material.title
+        material.delete()
+
+        messages.success(request, f'Материал "{material_title}" успешно удален!')
+        return redirect('course-detail', course_id=course_id)
+
 
 class TestViewSet(viewsets.ModelViewSet):
     queryset = Test.objects.all()
@@ -473,73 +699,6 @@ def author_courses(request, teacher_id):
         'teacher': teacher,
         'courses': courses
     })
-
-
-@login_required
-def course_create(request):
-    if request.user.role != 'teacher':
-        return redirect('dashboard')
-
-    if request.method == 'POST':
-        form = CourseForm(request.POST, request.FILES)
-        if form.is_valid():
-            course = form.save(commit=False)
-            course.owner = request.user  # Set the current user as owner
-            course.save()
-            messages.success(request, 'Курс успешно создан!')
-            return redirect('course-detail', course_id=course.id)
-    else:
-        form = CourseForm()
-
-    return render(request, 'lms/course_form.html', {'form': form, 'title': 'Создание курса'})
-
-
-def course_detail_template(request, course_id):
-    """Display course details with different access levels"""
-    course = get_object_or_404(Course, id=course_id)
-    is_teacher = request.user.is_authenticated and request.user.role == 'teacher'
-    is_owner = request.user.is_authenticated and course.owner == request.user
-    is_enrolled = request.user.is_authenticated and course.students.filter(id=request.user.id).exists()
-    materials_count = course.materials.count()
-    tests_count = course.materials.filter(test__isnull=False).count()
-    materials = course.materials.all()
-    tests = Test.objects.filter(material__course=course).distinct()
-
-    context = {
-        'course': course,
-        'materials_count': materials_count,
-        'tests_count': tests_count,
-        'is_teacher': is_teacher,
-        'is_owner': is_owner,  # This is the key - only TRUE if user owns the course
-        'is_enrolled': is_enrolled,
-        'materials': materials,
-        'tests': tests
-    }
-
-    # ONLY show teacher tools if user is the actual owner
-    if is_owner:
-        context['enrollments'] = Enrollment.objects.filter(course=course).select_related('student')
-        context['show_teacher_tools'] = True
-
-    # Rest of your existing code...
-    if request.user.is_authenticated:
-        user_enrolled = Enrollment.objects.filter(
-            student=request.user,
-            course=course
-        ).exists()
-
-        if user_enrolled:
-            materials = course.materials.all().prefetch_related('test')
-            context.update({
-                'user_enrolled': True,
-                'materials': materials,
-            })
-        else:
-            context.update({
-                'user_enrolled': False,
-            })
-
-    return render(request, 'lms/course_detail.html', context)
 
 
 @login_required
