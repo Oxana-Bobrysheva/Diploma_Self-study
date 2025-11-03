@@ -7,71 +7,173 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Course',
+            name="Course",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(help_text='Введите название курса', max_length=200, verbose_name='Курс')),
-                ('price', models.DecimalField(decimal_places=2, default=0.0, help_text='Укажите стоимость курса в рублях', max_digits=10, verbose_name='Цена курса')),
-                ('preview', models.ImageField(blank=True, help_text='Загрузите картинку курса', null=True, upload_to='courses/previews/', verbose_name='Картинка')),
-                ('description', models.TextField(blank=True, help_text='Расскажите о своём курсе', null=True, verbose_name='Описание курса')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "title",
+                    models.CharField(
+                        help_text="Введите название курса",
+                        max_length=200,
+                        verbose_name="Курс",
+                    ),
+                ),
+                (
+                    "price",
+                    models.DecimalField(
+                        decimal_places=2,
+                        default=0.0,
+                        help_text="Укажите стоимость курса в рублях",
+                        max_digits=10,
+                        verbose_name="Цена курса",
+                    ),
+                ),
+                (
+                    "preview",
+                    models.ImageField(
+                        blank=True,
+                        help_text="Загрузите картинку курса",
+                        null=True,
+                        upload_to="courses/previews/",
+                        verbose_name="Картинка",
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(
+                        blank=True,
+                        help_text="Расскажите о своём курсе",
+                        null=True,
+                        verbose_name="Описание курса",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'verbose_name': 'Курс',
-                'verbose_name_plural': 'Курсы',
+                "verbose_name": "Курс",
+                "verbose_name_plural": "Курсы",
             },
         ),
         migrations.CreateModel(
-            name='Enrollment',
+            name="Enrollment",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('enrolled_at', models.DateTimeField(auto_now_add=True)),
-                ('progress', models.FloatField(default=0.0)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("enrolled_at", models.DateTimeField(auto_now_add=True)),
+                ("progress", models.FloatField(default=0.0)),
             ],
             options={
-                'verbose_name': 'Запись на курс',
-                'verbose_name_plural': 'Записи на курсы',
-                'ordering': ['-enrolled_at'],
+                "verbose_name": "Запись на курс",
+                "verbose_name_plural": "Записи на курсы",
+                "ordering": ["-enrolled_at"],
             },
         ),
         migrations.CreateModel(
-            name='Material',
+            name="Material",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(help_text='Введите название материала', max_length=250, verbose_name='Материал')),
-                ('content', models.TextField(help_text='Разместите текст или ссылку на файл', verbose_name='Содержание материала')),
-                ('illustration', models.ImageField(blank=True, help_text='Загрузите иллюстрацию к материалу', null=True, upload_to='materials/illustrations', verbose_name='Иллюстрация')),
-                ('video_link', models.TextField(blank=True, help_text='Введите ссылку на видео', null=True, verbose_name='Ссылка на видео')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "title",
+                    models.CharField(
+                        help_text="Введите название материала",
+                        max_length=250,
+                        verbose_name="Материал",
+                    ),
+                ),
+                (
+                    "content",
+                    models.TextField(
+                        help_text="Разместите текст или ссылку на файл",
+                        verbose_name="Содержание материала",
+                    ),
+                ),
+                (
+                    "illustration",
+                    models.ImageField(
+                        blank=True,
+                        help_text="Загрузите иллюстрацию к материалу",
+                        null=True,
+                        upload_to="materials/illustrations",
+                        verbose_name="Иллюстрация",
+                    ),
+                ),
+                (
+                    "video_link",
+                    models.TextField(
+                        blank=True,
+                        help_text="Введите ссылку на видео",
+                        null=True,
+                        verbose_name="Ссылка на видео",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'verbose_name': 'Материал',
-                'verbose_name_plural': 'Материалы',
-                'ordering': ['id'],
+                "verbose_name": "Материал",
+                "verbose_name_plural": "Материалы",
+                "ordering": ["id"],
             },
         ),
         migrations.CreateModel(
-            name='Test',
+            name="Test",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('questions', models.JSONField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("questions", models.JSONField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.CreateModel(
-            name='TestResult',
+            name="TestResult",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('answers', models.JSONField()),
-                ('score', models.FloatField()),
-                ('passed', models.BooleanField(default=False)),
-                ('completed_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("answers", models.JSONField()),
+                ("score", models.FloatField()),
+                ("passed", models.BooleanField(default=False)),
+                ("completed_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
     ]

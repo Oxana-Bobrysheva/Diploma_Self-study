@@ -10,63 +10,113 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('lms', '0001_initial'),
+        ("lms", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='course',
-            name='owner',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='courses_created', to=settings.AUTH_USER_MODEL, verbose_name='Автор курса'),
+            model_name="course",
+            name="owner",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="courses_created",
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="Автор курса",
+            ),
         ),
         migrations.AddField(
-            model_name='enrollment',
-            name='course',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='lms.course'),
+            model_name="enrollment",
+            name="course",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to="lms.course"
+            ),
         ),
         migrations.AddField(
-            model_name='enrollment',
-            name='student',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="enrollment",
+            name="student",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AddField(
-            model_name='course',
-            name='students',
-            field=models.ManyToManyField(blank=True, related_name='enrolled_courses', through='lms.Enrollment', to=settings.AUTH_USER_MODEL),
+            model_name="course",
+            name="students",
+            field=models.ManyToManyField(
+                blank=True,
+                related_name="enrolled_courses",
+                through="lms.Enrollment",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='material',
-            name='course',
-            field=models.ForeignKey(blank=True, help_text='Укажите курс', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='materials', to='lms.course', verbose_name='Курс'),
+            model_name="material",
+            name="course",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Укажите курс",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="materials",
+                to="lms.course",
+                verbose_name="Курс",
+            ),
         ),
         migrations.AddField(
-            model_name='material',
-            name='owner',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='materials', to=settings.AUTH_USER_MODEL, verbose_name='Автор материала'),
+            model_name="material",
+            name="owner",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="materials",
+                to=settings.AUTH_USER_MODEL,
+                verbose_name="Автор материала",
+            ),
         ),
         migrations.AddField(
-            model_name='test',
-            name='material',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='test', to='lms.material'),
+            model_name="test",
+            name="material",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="test",
+                to="lms.material",
+            ),
         ),
         migrations.AddField(
-            model_name='test',
-            name='owner',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="test",
+            name="owner",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='testresult',
-            name='test',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='results', to='lms.test'),
+            model_name="testresult",
+            name="test",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="results",
+                to="lms.test",
+            ),
         ),
         migrations.AddField(
-            model_name='testresult',
-            name='user',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='test_results', to=settings.AUTH_USER_MODEL),
+            model_name="testresult",
+            name="user",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="test_results",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='enrollment',
-            unique_together={('student', 'course')},
+            name="enrollment",
+            unique_together={("student", "course")},
         ),
     ]

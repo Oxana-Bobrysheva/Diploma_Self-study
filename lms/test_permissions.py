@@ -1,8 +1,11 @@
 from django.test import TestCase, RequestFactory
 from django.contrib.auth import get_user_model
-from rest_framework.request import Request
 from lms.models import Course, Material
-from lms.permissions import IsTeacherOrAdmin, IsCourseOwnerOrAdmin, IsStudentOrSubscribed
+from lms.permissions import (
+    IsTeacherOrAdmin,
+    IsCourseOwnerOrAdmin,
+    IsStudentOrSubscribed,
+)
 
 User = get_user_model()
 
@@ -11,55 +14,52 @@ class PermissionTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.teacher = User.objects.create_user(
-            email='teacher@test.com',
-            password='testpass123',
-            username='teacheruser',
-            role='teacher'
+            email="teacher@test.com",
+            password="testpass123",
+            username="teacheruser",
+            role="teacher",
         )
         self.student = User.objects.create_user(
-            email='student@test.com',
-            password='testpass123',
-            username='studentuser',
-            role='student'
+            email="student@test.com",
+            password="testpass123",
+            username="studentuser",
+            role="student",
         )
         self.admin = User.objects.create_user(
-            email='admin@test.com',
-            password='testpass123',
-            username='adminuser',
+            email="admin@test.com",
+            password="testpass123",
+            username="adminuser",
             is_staff=True,
-            is_superuser=True
+            is_superuser=True,
         )
-        self.course = Course.objects.create(
-            title='Test Course',
-            owner=self.teacher
-        )
+        self.course = Course.objects.create(title="Test Course", owner=self.teacher)
         self.material = Material.objects.create(
-            title='Test Material',
-            content='Test Content',
+            title="Test Material",
+            content="Test Content",
             course=self.course,
-            owner=self.teacher
+            owner=self.teacher,
         )
 
     def test_is_teacher_or_admin_permission_class_exists(self):
         """Test IsTeacherOrAdmin permission class can be instantiated"""
         permission = IsTeacherOrAdmin()
         self.assertIsNotNone(permission)
-        self.assertTrue(hasattr(permission, 'has_permission'))
-        self.assertTrue(hasattr(permission, 'has_object_permission'))
+        self.assertTrue(hasattr(permission, "has_permission"))
+        self.assertTrue(hasattr(permission, "has_object_permission"))
 
     def test_is_course_owner_or_admin_permission_class_exists(self):
         """Test IsCourseOwnerOrAdmin permission class can be instantiated"""
         permission = IsCourseOwnerOrAdmin()
         self.assertIsNotNone(permission)
-        self.assertTrue(hasattr(permission, 'has_permission'))
-        self.assertTrue(hasattr(permission, 'has_object_permission'))
+        self.assertTrue(hasattr(permission, "has_permission"))
+        self.assertTrue(hasattr(permission, "has_object_permission"))
 
     def test_is_student_or_subscribed_permission_class_exists(self):
         """Test IsStudentOrSubscribed permission class can be instantiated"""
         permission = IsStudentOrSubscribed()
         self.assertIsNotNone(permission)
-        self.assertTrue(hasattr(permission, 'has_permission'))
-        self.assertTrue(hasattr(permission, 'has_object_permission'))
+        self.assertTrue(hasattr(permission, "has_permission"))
+        self.assertTrue(hasattr(permission, "has_object_permission"))
 
     def test_permission_methods_can_be_called(self):
         """Test permission methods can be called without errors"""
@@ -67,7 +67,7 @@ class PermissionTests(TestCase):
         permission2 = IsCourseOwnerOrAdmin()
         permission3 = IsStudentOrSubscribed()
 
-        request = self.factory.get('/')
+        request = self.factory.get("/")
         request.user = self.teacher
 
         # Test that methods can be called (we don't care about return value for coverage)
@@ -80,7 +80,7 @@ class PermissionTests(TestCase):
             result4 = permission1.has_object_permission(request, None, self.course)
             result5 = permission2.has_object_permission(request, None, self.course)
             result6 = permission3.has_object_permission(request, None, self.course)
-
+            print(result6, result5, result4, result1, result2, result3)
             # If we get here, methods executed successfully
             self.assertTrue(True)
         except Exception as e:
@@ -96,8 +96,8 @@ class PermissionTests(TestCase):
 
         # DRF permissions should have these attributes
         for perm in [permission1, permission2, permission3]:
-            self.assertTrue(hasattr(perm, 'has_permission'))
-            self.assertTrue(hasattr(perm, 'has_object_permission'))
+            self.assertTrue(hasattr(perm, "has_permission"))
+            self.assertTrue(hasattr(perm, "has_object_permission"))
 
     def test_multiple_permission_instances(self):
         """Test creating multiple instances of each permission class"""
@@ -118,35 +118,32 @@ class PermissionsMissingTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.teacher = User.objects.create_user(
-            email='teacher@test.com',
-            password='testpass123',
-            username='teacheruser',
-            role='teacher'
+            email="teacher@test.com",
+            password="testpass123",
+            username="teacheruser",
+            role="teacher",
         )
         self.student = User.objects.create_user(
-            email='student@test.com',
-            password='testpass123',
-            username='studentuser',
-            role='student'
+            email="student@test.com",
+            password="testpass123",
+            username="studentuser",
+            role="student",
         )
         self.admin = User.objects.create_user(
-            email='admin@test.com',
-            password='testpass123',
-            username='adminuser',
+            email="admin@test.com",
+            password="testpass123",
+            username="adminuser",
             is_staff=True,
-            is_superuser=True
+            is_superuser=True,
         )
-        self.course = Course.objects.create(
-            title='Test Course',
-            owner=self.teacher
-        )
+        self.course = Course.objects.create(title="Test Course", owner=self.teacher)
 
     def test_is_teacher_or_admin_has_permission(self):
         """Test IsTeacherOrAdmin.has_permission (lines 17-18)"""
         permission = IsTeacherOrAdmin()
 
         # Test with teacher
-        request = self.factory.get('/')
+        request = self.factory.get("/")
         request.user = self.teacher
         try:
             result = permission.has_permission(request, None)
@@ -160,7 +157,7 @@ class PermissionsMissingTests(TestCase):
         permission = IsCourseOwnerOrAdmin()
 
         # Test with course owner
-        request = self.factory.get('/')
+        request = self.factory.get("/")
         request.user = self.teacher
 
         try:
@@ -174,7 +171,7 @@ class PermissionsMissingTests(TestCase):
         permission = IsStudentOrSubscribed()
 
         # Test has_permission
-        request = self.factory.get('/')
+        request = self.factory.get("/")
         request.user = self.student
 
         try:

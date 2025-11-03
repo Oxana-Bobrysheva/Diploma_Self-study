@@ -13,7 +13,9 @@ class BasicModelTests(TestCase):
 
     def test_course_creation(self):
         """Test Course model can be created"""
-        course = Course.objects.create(title="Test Course", description="Test Description")
+        course = Course.objects.create(
+            title="Test Course", description="Test Description"
+        )
         self.assertEqual(str(course), "Test Course")
         self.assertEqual(Course.objects.count(), 1)
 
@@ -21,9 +23,7 @@ class BasicModelTests(TestCase):
         """Test Material model can be created"""
         course = Course.objects.create(title="Test Course")
         material = Material.objects.create(
-            title="Test Material",
-            content="Test content",
-            course=course
+            title="Test Material", content="Test content", course=course
         )
         self.assertEqual(str(material), "Test Material")
         self.assertEqual(Material.objects.count(), 1)
@@ -42,9 +42,7 @@ class BasicModelTests(TestCase):
         material = Material.objects.create(title="Test Material", course=course)
         testing = Testing.objects.create(material=material, title="Test Quiz")
         question = Question.objects.create(
-            testing=testing,
-            text="What is 2+2?",
-            question_type="text"
+            testing=testing, text="What is 2+2?", question_type="text"
         )
         self.assertEqual(Question.objects.count(), 1)
         self.assertIn("Q0:", str(question))
@@ -56,9 +54,7 @@ class BasicModelTests(TestCase):
         testing = Testing.objects.create(material=material, title="Test Quiz")
         question = Question.objects.create(testing=testing, text="Test question?")
         answer = Answer.objects.create(
-            question=question,
-            text="Test answer",
-            is_correct=True
+            question=question, text="Test answer", is_correct=True
         )
         self.assertEqual(Answer.objects.count(), 1)
         self.assertIn("✓", str(answer))
@@ -68,14 +64,11 @@ class BasicModelTests(TestCase):
         # Create user with username if required
         try:
             user = User.objects.create_user(
-                email="test@test.com",
-                password="testpass123",
-                username="testuser"
+                email="test@test.com", password="testpass123", username="testuser"
             )
         except:
             user = User.objects.create_user(
-                email="test@test.com",
-                password="testpass123"
+                email="test@test.com", password="testpass123"
             )
 
         course = Course.objects.create(title="Test Course")
@@ -87,14 +80,11 @@ class BasicModelTests(TestCase):
         # Create user with username if required
         try:
             user = User.objects.create_user(
-                email="test@test.com",
-                password="testpass123",
-                username="testuser"
+                email="test@test.com", password="testpass123", username="testuser"
             )
         except:
             user = User.objects.create_user(
-                email="test@test.com",
-                password="testpass123"
+                email="test@test.com", password="testpass123"
             )
 
         course = Course.objects.create(title="Test Course")
@@ -107,7 +97,7 @@ class BasicModelTests(TestCase):
             score=85.5,
             passed=True,
             total_questions=10,
-            correct_answers=8
+            correct_answers=8,
         )
 
         self.assertEqual(TestAttempt.objects.count(), 1)
@@ -125,15 +115,11 @@ class PlatformFunctionalityTests(TestCase):
         course = Course.objects.create(title="Programming Course")
 
         material1 = Material.objects.create(
-            title="Introduction to Python",
-            content="Python basics",
-            course=course
+            title="Introduction to Python", content="Python basics", course=course
         )
 
         material2 = Material.objects.create(
-            title="Advanced Python",
-            content="Python OOP",
-            course=course
+            title="Advanced Python", content="Python OOP", course=course
         )
 
         self.assertEqual(course.materials.count(), 2)
@@ -148,15 +134,11 @@ class PlatformFunctionalityTests(TestCase):
 
         # Create questions
         question1 = Question.objects.create(
-            testing=testing,
-            text="What is 5+3?",
-            question_type="text"
+            testing=testing, text="What is 5+3?", question_type="text"
         )
 
         question2 = Question.objects.create(
-            testing=testing,
-            text="What is 10-4?",
-            question_type="text"
+            testing=testing, text="What is 10-4?", question_type="text"
         )
 
         # Create answers

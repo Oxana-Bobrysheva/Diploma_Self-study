@@ -1,9 +1,8 @@
-from django.test import TestCase
 from django.test import TestCase, RequestFactory
 from django.contrib.auth import get_user_model
-from django.http import HttpRequest
 from lms.models import Course, Material, Testing
 from lms import views
+
 User = get_user_model()
 
 
@@ -14,27 +13,59 @@ class ExecuteViewsTests(TestCase):
         """Import and reference all views to execute import paths"""
         from lms.views import (
             # List ALL views from views.py here
-            CourseCreateView, CourseDetailView, CourseListView,
-            CourseEditView, CourseDeleteView, MaterialDetailView,
-            MaterialCreateView, MaterialEditView, MaterialDeleteView,
-            TestingDetailView, TestingCreateView, TestingUpdateView,
-            QuestionCreateView, QuestionUpdateView, QuestionDeleteView,
-            TestTakeView, TestSubmitView, TestResultView,
-            CourseViewSet, MaterialViewSet, TestViewSet,
-            MyCoursesView, EnrollCourseView
+            CourseCreateView,
+            CourseDetailView,
+            CourseListView,
+            CourseEditView,
+            CourseDeleteView,
+            MaterialDetailView,
+            MaterialCreateView,
+            MaterialEditView,
+            MaterialDeleteView,
+            TestingDetailView,
+            TestingCreateView,
+            TestingUpdateView,
+            QuestionCreateView,
+            QuestionUpdateView,
+            QuestionDeleteView,
+            TestTakeView,
+            TestSubmitView,
+            TestResultView,
+            CourseViewSet,
+            MaterialViewSet,
+            TestViewSet,
+            MyCoursesView,
+            EnrollCourseView,
         )
 
         # Reference them to ensure they're executed
-        views_exist = all([
-            CourseCreateView, CourseDetailView, CourseListView,
-            CourseEditView, CourseDeleteView, MaterialDetailView,
-            MaterialCreateView, MaterialEditView, MaterialDeleteView,
-            TestingDetailView, TestingCreateView, TestingUpdateView,
-            QuestionCreateView, QuestionUpdateView, QuestionDeleteView,
-            TestTakeView, TestSubmitView, TestResultView,
-            CourseViewSet, MaterialViewSet, TestViewSet,
-            MyCoursesView, EnrollCourseView
-        ])
+        views_exist = all(
+            [
+                CourseCreateView,
+                CourseDetailView,
+                CourseListView,
+                CourseEditView,
+                CourseDeleteView,
+                MaterialDetailView,
+                MaterialCreateView,
+                MaterialEditView,
+                MaterialDeleteView,
+                TestingDetailView,
+                TestingCreateView,
+                TestingUpdateView,
+                QuestionCreateView,
+                QuestionUpdateView,
+                QuestionDeleteView,
+                TestTakeView,
+                TestSubmitView,
+                TestResultView,
+                CourseViewSet,
+                MaterialViewSet,
+                TestViewSet,
+                MyCoursesView,
+                EnrollCourseView,
+            ]
+        )
 
         self.assertTrue(views_exist)
 
@@ -43,8 +74,8 @@ class ExecuteViewsTests(TestCase):
         from lms.views import CourseListView
 
         view = CourseListView()
-        self.assertTrue(hasattr(view, 'template_name'))
-        self.assertEqual(view.template_name, 'lms/course_list.html')
+        self.assertTrue(hasattr(view, "template_name"))
+        self.assertEqual(view.template_name, "lms/course_list.html")
 
     def test_view_method_signatures(self):
         """Test that view methods have correct signatures"""
@@ -60,36 +91,30 @@ class DirectViewsTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.teacher = User.objects.create_user(
-            email='teacher@test.com',
-            password='testpass123',
-            username='teacheruser',
-            role='teacher'
+            email="teacher@test.com",
+            password="testpass123",
+            username="teacheruser",
+            role="teacher",
         )
         self.student = User.objects.create_user(
-            email='student@test.com',
-            password='testpass123',
-            username='studentuser',
-            role='student'
+            email="student@test.com",
+            password="testpass123",
+            username="studentuser",
+            role="student",
         )
-        self.course = Course.objects.create(
-            title='Test Course',
-            owner=self.teacher
-        )
+        self.course = Course.objects.create(title="Test Course", owner=self.teacher)
         self.material = Material.objects.create(
-            title='Test Material',
-            content='Test Content',
+            title="Test Material",
+            content="Test Content",
             course=self.course,
-            owner=self.teacher
+            owner=self.teacher,
         )
-        self.testing = Testing.objects.create(
-            material=self.material,
-            title='Test Quiz'
-        )
+        self.testing = Testing.objects.create(material=self.material, title="Test Quiz")
 
     def test_course_list_view_direct(self):
         """Test CourseListView directly"""
         view = views.CourseListView()
-        request = self.factory.get('/')
+        request = self.factory.get("/")
         view.request = request
 
         try:
@@ -101,8 +126,8 @@ class DirectViewsTests(TestCase):
     def test_course_detail_view_direct(self):
         """Test CourseDetailView directly"""
         view = views.CourseDetailView()
-        view.kwargs = {'course_id': self.course.id}
-        request = self.factory.get('/')
+        view.kwargs = {"course_id": self.course.id}
+        request = self.factory.get("/")
         request.user = self.student
         view.request = request
 
@@ -115,8 +140,8 @@ class DirectViewsTests(TestCase):
     def test_material_detail_view_direct(self):
         """Test MaterialDetailView directly"""
         view = views.MaterialDetailView()
-        view.kwargs = {'material_id': self.material.id}
-        request = self.factory.get('/')
+        view.kwargs = {"material_id": self.material.id}
+        request = self.factory.get("/")
         request.user = self.student
         view.request = request
 
@@ -130,7 +155,7 @@ class DirectViewsTests(TestCase):
         """Test TestTakeView directly"""
         view = views.TestTakeView()
         view.object = self.testing
-        request = self.factory.get('/')
+        request = self.factory.get("/")
         request.user = self.student
         view.request = request
 
@@ -150,12 +175,12 @@ class DirectViewsTests(TestCase):
             score=85.0,
             passed=True,
             total_questions=10,
-            correct_answers=8
+            correct_answers=8,
         )
 
         view = views.TestResultView()
         view.object = test_attempt
-        request = self.factory.get('/')
+        request = self.factory.get("/")
         request.user = self.student
         view.request = request
 
@@ -169,7 +194,7 @@ class DirectViewsTests(TestCase):
         """Test ViewSet methods"""
         # CourseViewSet
         course_viewset = views.CourseViewSet()
-        course_viewset.request = type('Request', (), {'user': self.teacher})()
+        course_viewset.request = type("Request", (), {"user": self.teacher})()
         course_viewset.format_kwarg = None
 
         try:
@@ -182,24 +207,31 @@ class DirectViewsTests(TestCase):
         """Test APIView methods"""
         # MyCoursesView
         my_courses_view = views.MyCoursesView()
-        my_courses_view.request = type('Request', (), {
-            'user': self.student,
-            'method': 'GET'
-        })()
+        my_courses_view.request = type(
+            "Request", (), {"user": self.student, "method": "GET"}
+        )()
 
         try:
             # Just test that the class can be instantiated and has methods
-            self.assertTrue(hasattr(my_courses_view, 'get'))
+            self.assertTrue(hasattr(my_courses_view, "get"))
         except Exception as e:
             print(f"MyCoursesView setup executed: {e}")
 
     def test_all_view_initializations(self):
         """Initialize all views to execute their __init__ methods"""
         view_classes = [
-            views.CourseCreateView, views.CourseEditView, views.CourseDeleteView,
-            views.MaterialCreateView, views.MaterialEditView, views.MaterialDeleteView,
-            views.TestingCreateView, views.TestingUpdateView, views.TestingDetailView,
-            views.QuestionCreateView, views.QuestionUpdateView, views.QuestionDeleteView,
+            views.CourseCreateView,
+            views.CourseEditView,
+            views.CourseDeleteView,
+            views.MaterialCreateView,
+            views.MaterialEditView,
+            views.MaterialDeleteView,
+            views.TestingCreateView,
+            views.TestingUpdateView,
+            views.TestingDetailView,
+            views.QuestionCreateView,
+            views.QuestionUpdateView,
+            views.QuestionDeleteView,
         ]
 
         for view_class in view_classes:
@@ -208,6 +240,7 @@ class DirectViewsTests(TestCase):
                 self.assertIsNotNone(instance)
             except Exception as e:
                 print(f"{view_class.__name__} initialization executed: {e}")
+
 
 class RemainingViewsTests(TestCase):
     """Execute remaining view code paths"""
@@ -220,21 +253,20 @@ class RemainingViewsTests(TestCase):
         view = CourseCreateView()
 
         # These should exist from Django's generic views
-        self.assertTrue(hasattr(view, 'get_form_class'))
-        self.assertTrue(hasattr(view, 'get_success_url'))
-        self.assertTrue(hasattr(view, 'form_valid'))
+        self.assertTrue(hasattr(view, "get_form_class"))
+        self.assertTrue(hasattr(view, "get_success_url"))
+        self.assertTrue(hasattr(view, "form_valid"))
 
     def test_view_mixin_methods(self):
         """Test view mixin methods"""
         from lms.views import CourseCreateView
-        from django.contrib.auth.mixins import LoginRequiredMixin
 
         view = CourseCreateView()
 
         # Test mixin methods
-        if hasattr(view, 'dispatch'):
+        if hasattr(view, "dispatch"):
             self.assertTrue(callable(view.dispatch))
-        if hasattr(view, 'get_login_url'):
+        if hasattr(view, "get_login_url"):
             self.assertTrue(callable(view.get_login_url))
 
     def test_view_properties(self):
@@ -244,31 +276,15 @@ class RemainingViewsTests(TestCase):
         view = CourseListView()
 
         # Test template name property
-        self.assertEqual(view.template_name, 'lms/course_list.html')
+        self.assertEqual(view.template_name, "lms/course_list.html")
 
         # Test context object name if exists
-        if hasattr(view, 'context_object_name'):
+        if hasattr(view, "context_object_name"):
             self.assertIsInstance(view.context_object_name, (str, type(None)))
 
     def test_view_url_patterns_execution(self):
         """Test that URL pattern code executes"""
         # Import URLs to execute the urlpatterns code
         from lms import urls
+
         self.assertIsNotNone(urls.urlpatterns)
-
-    def test_all_view_imports_complete(self):
-        """Ensure all view imports complete successfully"""
-        # This executes all import statements in views.py
-        from lms.views import (
-            # Re-import everything to ensure imports work
-            redirect, render, get_object_or_404,
-            messages, LoginRequiredMixin, UserPassesTestMixin,
-            TemplateView, CreateView, UpdateView, DeleteView, DetailView, View,
-            viewsets, permissions, status, Response, APIView,
-            Course, Material, Testing, Enrollment, User, Question, Answer, TestAttempt,
-            CourseSerializer, MaterialSerializer, TestingSerializer, EnrollmentSerializer,
-            IsTeacherOrAdmin, IsCourseOwnerOrAdmin, IsStudentOrSubscribed
-        )
-
-        # If we get here, all imports work
-        self.assertTrue(True)

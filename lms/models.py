@@ -31,7 +31,7 @@ class Course(models.Model):
     )
 
     owner = models.ForeignKey(
-        'users.User',
+        "users.User",
         on_delete=models.CASCADE,
         related_name="courses_created",
         verbose_name="Автор курса",
@@ -40,10 +40,7 @@ class Course(models.Model):
     )
 
     students = models.ManyToManyField(
-        'users.User',
-        through='Enrollment',
-        related_name='enrolled_courses',
-        blank=True
+        "users.User", through="Enrollment", related_name="enrolled_courses", blank=True
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -63,7 +60,8 @@ class Material(models.Model):
     )
 
     content = models.TextField(
-        verbose_name="Содержание материала", help_text="Разместите текст или ссылку на файл"
+        verbose_name="Содержание материала",
+        help_text="Разместите текст или ссылку на файл",
     )
 
     illustration = models.ImageField(
@@ -92,13 +90,12 @@ class Material(models.Model):
     )
 
     owner = models.ForeignKey(
-        'users.User',
+        "users.User",
         on_delete=models.CASCADE,
         related_name="materials",
         verbose_name="Автор материала",
         null=True,
-        blank=True
-
+        blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -110,13 +107,22 @@ class Material(models.Model):
     def __str__(self):
         return self.title
 
+
 class Testing(models.Model):
-    material = models.OneToOneField(Material, on_delete=models.CASCADE, related_name='testing')
+    material = models.OneToOneField(
+        Material, on_delete=models.CASCADE, related_name="testing"
+    )
     title = models.CharField(max_length=200, default="Тест к материалу")
     description = models.TextField(blank=True, null=True)
-    owner = models.ForeignKey('users.User', on_delete=models.CASCADE, null=True, blank=True)
-    time_limit = models.IntegerField(default=0, help_text="Лимит времени в минутах (0 - без лимита)")
-    passing_score = models.IntegerField(default=70, help_text="Процент для успешной сдачи")
+    owner = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, null=True, blank=True
+    )
+    time_limit = models.IntegerField(
+        default=0, help_text="Лимит времени в минутах (0 - без лимита)"
+    )
+    passing_score = models.IntegerField(
+        default=70, help_text="Процент для успешной сдачи"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -126,22 +132,26 @@ class Testing(models.Model):
 
 class Question(models.Model):
     QUESTION_TYPES = [
-        ('text', 'Текстовый вопрос'),
-        ('text_image', 'Текст с изображением'),
-        ('text_audio', 'Текст с аудио'),
-        ('all', 'Текст, изображение и аудио'),
+        ("text", "Текстовый вопрос"),
+        ("text_image", "Текст с изображением"),
+        ("text_audio", "Текст с аудио"),
+        ("all", "Текст, изображение и аудио"),
     ]
 
-    testing = models.ForeignKey(Testing, on_delete=models.CASCADE, related_name='questions')
-    question_type = models.CharField(max_length=15, choices=QUESTION_TYPES, default='text')
+    testing = models.ForeignKey(
+        Testing, on_delete=models.CASCADE, related_name="questions"
+    )
+    question_type = models.CharField(
+        max_length=15, choices=QUESTION_TYPES, default="text"
+    )
     text = models.TextField(help_text="Текст вопроса")  # Always required
-    image = models.ImageField(upload_to='questions/images/', blank=True, null=True)
-    audio = models.FileField(upload_to='questions/audio/', blank=True, null=True)
+    image = models.ImageField(upload_to="questions/images/", blank=True, null=True)
+    audio = models.FileField(upload_to="questions/audio/", blank=True, null=True)
     order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['order', 'created_at']
+        ordering = ["order", "created_at"]
 
     def __str__(self):
         return f"Q{self.order}: {self.text[:50]}..."
@@ -150,34 +160,40 @@ class Question(models.Model):
         """Validate that required media fields are present based on question type"""
         from django.core.exceptions import ValidationError
 
-        if self.question_type in ['text_image', 'all'] and not self.image:
-            raise ValidationError({'image': 'Изображение обязательно для выбранного типа вопроса'})
+        if self.question_type in ["text_image", "all"] and not self.image:
+            raise ValidationError(
+                {"image": "Изображение обязательно для выбранного типа вопроса"}
+            )
 
-        if self.question_type in ['text_audio', 'all'] and not self.audio:
-            raise ValidationError({'audio': 'Аудио файл обязателен для выбранного типа вопроса'})
+        if self.question_type in ["text_audio", "all"] and not self.audio:
+            raise ValidationError(
+                {"audio": "Аудио файл обязателен для выбранного типа вопроса"}
+            )
 
 
 class Answer(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(
+        Question, on_delete=models.CASCADE, related_name="answers"
+    )
     text = models.CharField(max_length=500)
     is_correct = models.BooleanField(default=False)
     order = models.IntegerField(default=0)
 
     class Meta:
-        ordering = ['order']
+        ordering = ["order"]
 
     def __str__(self):
         return f"{self.text[:50]}... ({'✓' if self.is_correct else '✗'})"
 
 
 class Enrollment(models.Model):
-    student = models.ForeignKey('users.User', on_delete=models.CASCADE)
-    course = models.ForeignKey('Course', on_delete=models.CASCADE)
+    student = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    course = models.ForeignKey("Course", on_delete=models.CASCADE)
     enrolled_at = models.DateTimeField(auto_now_add=True)
     progress = models.FloatField(default=0.0)
 
     class Meta:
-        unique_together = ('student', 'course')  # Предотвращает повторные записи
+        unique_together = ("student", "course")  # Предотвращает повторные записи
         verbose_name = "Запись на курс"
         verbose_name_plural = "Записи на курсы"
         ordering = ["-enrolled_at"]
@@ -187,7 +203,7 @@ class Enrollment(models.Model):
 
 
 class TestAttempt(models.Model):
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE)
     testing = models.ForeignKey(Testing, on_delete=models.CASCADE)
     score = models.FloatField(help_text="Percentage score")
     passed = models.BooleanField(default=False)
@@ -196,7 +212,7 @@ class TestAttempt(models.Model):
     completed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-completed_at']
+        ordering = ["-completed_at"]
 
     def __str__(self):
         return f"{self.user.username} - {self.testing.title} - {self.score}%"
