@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{% if object %}Редактировать вопрос{% else %}Добавить вопрос{% endif %}</h2>
+    
+    <form method="post" enctype="multipart/form-data" id="question-form">
+        {% csrf_token %}
+
+        <!-- Question Fields -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Основная информация</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="{{ form.question_type.id_for_label }}" class="form-label">ТИП ВОПРОСА</label>
+                    {{ form.question_type }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.text.id_for_label }}" class="form-label">ТЕКСТ ВОПРОСА *</label>
+                    {{ form.text }}
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.image.id_for_label }}" class="form-label">ИЗОБРАЖЕНИЕ</label>
+                        {{ form.image }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.audio.id_for_label }}" class="form-label">АУДИО ФАЙЛ</label>
+                        {{ form.audio }}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.order.id_for_label }}" class="form-label">ПОРЯДОК *</label>
+                    {{ form.order }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Answers Section -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>ВАРИАНТЫ ОТВЕТОВ</h5>
+                <button type="button" class="btn btn-success btn-sm" id="add-answer">
+                    <i class="fas fa-plus me-1"></i>Добавить ответ
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="answers-container">
+                    <!-- Dynamic answer fields will be added here -->
+                    <div class="answer-item mb-3">
+                        <div class="input-group">
+                            <input type="text" name="answers[]" class="form-control" placeholder="Текст ответа">
+                            <div class="input-group-text">
+                                <input type="radio" name="correct_answer" value="0" class="form-check-input">
+                                <label class="form-check-label ms-2">Правильный</label>
+                            </div>
+                            <button type="button" class="btn btn-danger remove-answer">×</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success">Сохранить вопрос</button>
+        <a href="{% url 'testing-detail' testing_id %}" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const answersContainer = document.getElementById('answers-container');
+    let answerCount = 1;
+
+    // Add new answer field
+    document.getElementById('add-answer').addEventListener('click', function() {
+        const answerHtml = `
+            <div class="answer-item mb-3">
+                <div class="input-group">
+                    <input type="text" name="answers[]" class="form-control" placeholder="Текст ответа">
+                    <div class="input-group-text">
+                        <input type="radio" name="correct_answer" value="${answerCount}" class="form-check-input">
+                        <label class="form-check-label ms-2">Правильный</label>
+                    </div>
+                    <button type="button" class="btn btn-danger remove-answer">×</button>
+                </div>
+            </div>
+        `;
+        answersContainer.insertAdjacentHTML('beforeend', answerHtml);
+        answerCount++;
+    });
+
+    // Remove answer field
+    answersContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-answer')) {
+            e.target.closest('.answer-item').remove();
+        }
+    });
+
+    // Handle form submission
+    document.getElementById('question-form').addEventListener('submit', function(e) {
+        // You might want to add validation here
+        const answers = document.querySelectorAll('input[name="answers[]"]');
+        if (answers.length === 0) {
+            e.preventDefault();
+            alert('Добавьте хотя бы один вариант ответа');
+        }
+    });
+});
+</script>
+{% endblock %}

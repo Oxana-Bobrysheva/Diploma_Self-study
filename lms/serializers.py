@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Material, Testing, TestResult, Enrollment
+from .models import Course, Material, Testing, TestResult, Enrollment, Answer, Question
 
 
 class MaterialSerializer(serializers.ModelSerializer):
@@ -10,24 +10,12 @@ class MaterialSerializer(serializers.ModelSerializer):
         model = Material
         fields = '__all__'
 
-class TestingSerializer(serializers.ModelSerializer):
-
-    def validate_questions(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Questions must be a list.")
-        for q in value:
-            if not all(k in q for k in ["question", "answers", "correct"]):
-                raise serializers.ValidationError("Each question must have 'question', 'answers', and 'correct'.")
-        return value
-
-    class Meta:
-        model = Testing
-        fields = '__all__'
 
 class TestResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = TestResult
         fields = '__all__'
+
 
 class CourseSerializer(serializers.ModelSerializer):
     materials = MaterialSerializer(many=True, read_only=True)
@@ -35,6 +23,7 @@ class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = '__all__'
+
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     course = CourseSerializer(read_only=True)
@@ -91,3 +80,26 @@ class CourseDetailSerializer(serializers.ModelSerializer):
 
     def get_tests_count(self, obj):
         return obj.materials.filter(test__isnull=False).count()
+
+
+class AnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Answer
+        fields = ['id', 'text', 'is_correct', 'order']
+
+
+class QuestionSerializer(serializers.ModelSerializer):
+    answers = AnswerSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Question
+        fields = ['id', 'question_type', 'text', 'image', 'audio', 'order', 'answers']
+
+
+class TestingSerializer(serializers.ModelSerializer):
+    questions = QuestionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Testing
+        fields = ['id', 'title', 'description', 'material', 'owner', 'time_limit', 'passing_score', 'questions',
+                  'created_at']

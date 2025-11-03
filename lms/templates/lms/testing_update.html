@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'course_list' %}">Курсы</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'course-detail' testing.material.course.id %}">{{ testing.material.course.title }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'material-detail' testing.material.id %}">{{ testing.material.title }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'testing-detail' testing.id %}">{{ testing.title }}</a></li>
+            <li class="breadcrumb-item active">Редактирование</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>{{ title }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Test Basic Info -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Основная информация о тесте</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="test_title" class="form-label">Название теста *</label>
+                                            <input type="text" name="test_title" id="test_title" class="form-control"
+                                                   value="{{ testing.title }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="passing_score" class="form-label">Проходной балл (%)</label>
+                                            <input type="number" name="passing_score" id="passing_score"
+                                                   class="form-control" min="0" max="100" value="{{ testing.passing_score }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="test_description" class="form-label">Описание теста</label>
+                                    <textarea name="test_description" id="test_description" class="form-control" rows="3">{{ testing.description }}</textarea>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="time_limit" class="form-label">Лимит времени (минуты)</label>
+                                            <input type="number" name="time_limit" id="time_limit"
+                                                   class="form-control" min="0" value="{{ testing.time_limit }}">
+                                            <div class="form-text">0 - без лимита времени</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Existing Questions -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Вопросы теста ({{ testing.questions.count }})</h5>
+                                <button type="button" class="btn btn-success btn-sm" onclick="addNewQuestion()">
+                                    <i class="fas fa-plus me-1"></i>Добавить вопрос
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                {% if testing.questions.all %}
+                                    <div class="questions-list">
+                                        {% for question in testing.questions.all %}
+                                        <div class="card mb-3">
+                                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-0">
+                                                    Вопрос {{ forloop.counter }}
+                                                    <small class="text-muted">({{ question.get_question_type_display }})</small>
+                                                </h6>
+                                                <div>
+                                                    <a href="#" class="btn btn-warning btn-sm me-1">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-danger btn-sm">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <strong>Текст вопроса:</strong>
+                                                    <p>{{ question.text }}</p>
+                                                </div>
+
+                                                <!-- Media Display -->
+                                                {% if question.image %}
+                                                <div class="mb-3">
+                                                    <strong>Изображение:</strong>
+                                                    <div class="mt-2">
+                                                        <img src="{{ question.image.url }}" alt="Изображение вопроса"
+                                                             class="img-fluid rounded" style="max-height: 200px;">
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+
+                                                {% if question.audio %}
+                                                <div class="mb-3">
+                                                    <strong>Аудио:</strong>
+                                                    <div class="mt-2">
+                                                        <audio controls class="w-100">
+                                                            <source src="{{ question.audio.url }}" type="audio/mpeg">
+                                                            Ваш браузер не поддерживает аудио элемент.
+                                                        </audio>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+
+                                                <!-- Answers -->
+                                                <div class="mb-3">
+                                                    <strong>Варианты ответов:</strong>
+                                                    <div class="mt-2">
+                                                        {% for answer in question.answers.all %}
+                                                        <div class="form-check mb-2 {% if answer.is_correct %}text-success{% endif %}">
+                                                            <input class="form-check-input" type="radio" disabled
+                                                                   {% if answer.is_correct %}checked{% endif %}>
+                                                            <label class="form-check-label">
+                                                                {{ answer.text }}
+                                                                {% if answer.is_correct %}
+                                                                <span class="badge bg-success ms-2">Правильный</span>
+                                                                {% endif %}
+                                                            </label>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-question-circle fa-2x mb-2"></i>
+                                        <p>В тесте пока нет вопросов. Добавьте первый вопрос!</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Сохранить изменения
+                            </button>
+                            <a href="{% url 'testing-detail' testing.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function addNewQuestion() {
+    // For now, redirect to test creation with this test ID
+    // Later we can implement inline question adding
+    alert('Функция добавления новых вопросов скоро будет доступна!');
+}
+</script>
+{% endblock %}

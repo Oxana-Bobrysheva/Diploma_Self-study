@@ -33,11 +33,29 @@ urlpatterns = [
          name='material-create'),
 
     # Material management URLs
-    path('materials/<int:material_id>/', views.MaterialDetailView.as_view(), name='material-detail'),
-    path('courses/<int:course_id>/materials/<int:material_id>/edit/', views.MaterialEditView.as_view(),
-         name='material-edit'),
-    path('courses/<int:course_id>/materials/<int:material_id>/delete/', views.MaterialDeleteView.as_view(),
-         name='material-delete'),
+    path('materials/<int:material_id>/', views.MaterialDetailView.as_view(),
+         name='material-detail'),
+    path('courses/<int:course_id>/materials/<int:material_id>/edit/',
+         views.MaterialEditView.as_view(), name='material-edit'),
+    path('courses/<int:course_id>/materials/<int:material_id>/delete/',
+         views.MaterialDeleteView.as_view(), name='material-delete'),
+
+    # Testing management URLs
+    path('materials/<int:material_id>/create-test/', views.TestingCreateView.as_view(),
+         name='testing-create'),
+    path('testing/<int:testing_id>/', views.TestingDetailView.as_view(),
+         name='testing-detail'),
+    path('testing/<int:testing_id>/update/', views.TestingUpdateView.as_view(),
+         name='testing-update'),
+
+    # Question management URLs
+    path('testing/<int:testing_id>/questions/create/', views.QuestionCreateView.as_view(),
+         name='create_question'),
+    path('question/<int:pk>/update/', views.QuestionUpdateView.as_view(),
+         name='update_question'),
+    path('question/<int:pk>/delete/', views.QuestionDeleteView.as_view(),
+         name='delete_question'),
+
 
     # Swagger documentation
     # path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

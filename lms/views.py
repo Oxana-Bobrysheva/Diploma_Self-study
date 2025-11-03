@@ -4,7 +4,8 @@ from django.db import models
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.shortcuts import redirect, render, get_object_or_404
-from django.views.generic import TemplateView
+from django.urls import reverse_lazy
+from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -12,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .forms import CourseForm
-from .models import Course, Material, Testing, TestResult, Enrollment, User
+from .models import Course, Material, Testing, TestResult, Enrollment, User, Question, Answer
 from .serializers import CourseSerializer, MaterialSerializer, TestingSerializer, TestResultSerializer, \
     EnrollmentSerializer, CourseListSerializer
 from .permissions import IsTeacherOrAdmin, IsCourseOwnerOrAdmin, IsStudentOrSubscribed
@@ -73,7 +74,7 @@ class CourseDetailView(LoginRequiredMixin, TemplateView):
         is_enrolled = self.request.user.is_authenticated and course.students.filter(id=self.request.user.id).exists()
 
         materials_count = course.materials.count()
-        tests_count = course.materials.filter(test__isnull=False).count()
+        tests_count = course.materials.filter(testing__isnull=False).count()
         materials = course.materials.all()
         tests = Testing.objects.filter(material__course=course).distinct()
 
@@ -660,6 +661,211 @@ class SubmitTestView(APIView):
             return Response({"error": "Test not found."}, status=404)
 
 
+class TestingCreateView(CreateView):
+    model = Testing
+    template_name = 'lms/testing_create.html'
+    fields = ['title', 'description', 'time_limit', 'passing_score']
+
+    def form_valid(self, form):
+        # Set the material and owner
+        form.instance.material_id = self.kwargs['material_id']
+        form.instance.owner = self.request.user
+
+        # Save the testing object first
+        response = super().form_valid(form)
+        testing = self.object
+
+        # Process questions and answers
+        self.process_questions(testing)
+
+        return response
+
+    def process_questions(self, testing):
+        # Get all question data from request
+        question_count = int(self.request.POST.get('question_count', 0))
+
+        for i in range(1, question_count + 1):
+            question_key = f'question_{i}'
+            question_text = self.request.POST.get(f'{question_key}_text')
+
+            # Only process if question text exists
+            if question_text:
+                question = Question.objects.create(
+                    testing=testing,
+                    question_type=self.request.POST.get(f'{question_key}_type', 'text'),
+                    text=question_text,
+                    order=i
+                )
+
+                # Handle file uploads
+                if f'{question_key}_image' in self.request.FILES:
+                    question.image = self.request.FILES[f'{question_key}_image']
+
+                if f'{question_key}_audio' in self.request.FILES:
+                    question.audio = self.request.FILES[f'{question_key}_audio']
+
+                question.save()
+
+                # Process answers for this question
+                self.process_answers(question, i)
+
+    def process_answers(self, question, question_index):
+        answer_count = int(self.request.POST.get(
+            f'question_{question_index}_answer_count', 0))
+
+        for j in range(answer_count):
+            answer_text = self.request.POST.get(
+                f'question_{question_index}_answer_{j}_text')
+            is_correct = self.request.POST.get(
+                f'question_{question_index}_answer_{j}_correct') == 'on'
+
+            if answer_text:
+                Answer.objects.create(
+                    question=question,
+                    text=answer_text,
+                    is_correct=is_correct,
+                    order=j
+                )
+
+
+class TestingDetailView(LoginRequiredMixin, TemplateView):
+    template_name = 'lms/testing_detail.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        testing_id = self.kwargs['testing_id']
+        testing = get_object_or_404(
+            Testing.objects.select_related('material', 'material__course', 'owner')
+            .prefetch_related('questions__answers'),
+            id=testing_id
+        )
+
+        # Check permissions
+        is_owner = self.request.user == testing.owner or self.request.user.is_superuser
+        is_course_owner = self.request.user == testing.material.course.owner
+        can_edit = is_owner or is_course_owner
+
+        # Use serializer for data
+        serializer = TestingSerializer(testing, context={'request': self.request})
+
+        context.update({
+            'testing': testing,
+            'is_owner': is_owner,
+            'is_course_owner': is_course_owner,
+            'can_edit': can_edit,
+            'serialized_testing': serializer.data,
+            'title': f'Тест: {testing.title}'
+        })
+        return context
+
+
+class TestingUpdateView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'lms/testing_update.html'
+
+    def test_func(self):
+        """Only test owner or course owner can edit"""
+        testing_id = self.kwargs['testing_id']
+        testing = get_object_or_404(Testing, id=testing_id)
+        return (self.request.user == testing.owner or
+                self.request.user == testing.material.course.owner or
+                self.request.user.is_superuser)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        testing_id = self.kwargs['testing_id']
+        testing = get_object_or_404(
+            Testing.objects.select_related('material')
+            .prefetch_related('questions__answers'),
+            id=testing_id
+        )
+
+        context.update({
+            'testing': testing,
+            'question_types': Question.QUESTION_TYPES,
+            'title': f'Редактирование теста: {testing.title}'
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        testing_id = self.kwargs['testing_id']
+        testing = get_object_or_404(Testing, id=testing_id)
+
+        # Check permission
+        if not (
+                request.user == testing.owner or request.user ==
+                testing.material.course.owner or request.user.is_superuser):
+            messages.error(request, "У вас нет прав для редактирования этого теста")
+            return redirect('testing-detail', testing_id=testing_id)
+
+        try:
+            # Update test basic info
+            testing.title = request.POST.get('test_title', testing.title)
+            testing.description = request.POST.get('test_description', testing.description)
+            testing.time_limit = int(request.POST.get('time_limit', testing.time_limit))
+            testing.passing_score = int(request.POST.get('passing_score', testing.passing_score))
+            testing.save()
+
+            # For now, we'll just update existing questions
+            # Later we can add full question management
+
+            messages.success(request, 'Тест успешно обновлен!')
+            return redirect('testing-detail', testing_id=testing_id)
+
+        except Exception as e:
+            messages.error(request, f'Ошибка при обновлении теста: {str(e)}')
+            return self.render_to_response(self.get_context_data())
+
+
+class QuestionCreateView(CreateView):
+    model = Question
+    template_name = 'lms/question_form.html'
+    fields = ['question_type', 'text', 'image', 'audio', 'order']
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['testing_id'] = self.kwargs['testing_id']
+        return context
+
+    def form_valid(self, form):
+        # Save the question first
+        form.instance.testing_id = self.kwargs['testing_id']
+        self.object = form.save()
+
+        # Handle answers
+        answers = self.request.POST.getlist('answers[]')
+        correct_answer_index = int(self.request.POST.get('correct_answer', 0))
+
+        for i, answer_text in enumerate(answers):
+            if answer_text.strip():  # Only save non-empty answers
+                Answer.objects.create(
+                    question=self.object,
+                    text=answer_text.strip(),
+                    is_correct=(i == correct_answer_index),
+                    order=i
+                )
+
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('testing-detail', kwargs={'testing_id': self.kwargs['testing_id']})
+
+
+class QuestionUpdateView(UpdateView):
+    model = Question
+    template_name = 'lms/question_form.html'
+    fields = ['question_type', 'text', 'image', 'audio', 'order']
+
+    def get_success_url(self):
+        return reverse_lazy('testing-detail', kwargs={'pk': self.object.testing.id})
+
+
+class QuestionDeleteView(DeleteView):
+    model = Question
+
+    def get_success_url(self):
+        return reverse_lazy('testing-detail', kwargs={'pk': self.object.testing.id})
+
+
 def dashboard(request):
     # Get statistics
     total_courses = Course.objects.count()
@@ -776,3 +982,49 @@ def profile(request):
             context['total_students'] = 0
 
     return render(request, 'users/profile.html', context)
+
+
+class TestTakeView(DetailView):
+    model = Testing
+    template_name = 'lms/test_take.html'
+    context_object_name = 'testing'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['questions'] = self.object.questions.all().prefetch_related('answers')
+        return context
+
+
+class TestSubmitView(View):
+    def post(self, request, pk):
+        testing = get_object_or_404(Testing, pk=pk)
+        questions = testing.questions.all()
+        total_questions = questions.count()
+        correct_answers = 0
+
+        # Calculate score
+        for question in questions:
+            submitted_answer_id = request.POST.get(f'question_{question.id}')
+            if submitted_answer_id:
+                try:
+                    correct_answer = question.answers.filter(is_correct=True).first()
+                    if correct_answer and int(submitted_answer_id) == correct_answer.id:
+                        correct_answers += 1
+                except (ValueError, Answer.DoesNotExist):
+                    pass
+
+        # Calculate percentage
+        score_percentage = (correct_answers / total_questions * 100) if total_questions > 0 else 0
+        passed = score_percentage >= testing.passing_score
+
+        # Save test attempt
+        test_attempt = TestAttempt.objects.create(
+            user=request.user,
+            testing=testing,
+            score=score_percentage,
+            passed=passed,
+            total_questions=total_questions,
+            correct_answers=correct_answers
+        )
+
+        return redirect('test_result', attempt_id=test_attempt.id)
