@@ -111,19 +111,69 @@ class Material(models.Model):
     def __str__(self):
         return self.title
 
-class Test(models.Model):
-    material = models.OneToOneField(Material, on_delete=models.CASCADE, related_name='test')
-    questions = models.JSONField()  # Структура: [{"question": "Текст?", "answers": ["A", "B", "C"], "correct": "A"}]
-    owner = models.ForeignKey('users.User', on_delete=models.CASCADE, null=True, blank=True)  # Преподаватель
+class Testing(models.Model):
+    material = models.OneToOneField(Material, on_delete=models.CASCADE, related_name='testing')
+    title = models.CharField(max_length=200, default="Тест к материалу")
+    description = models.TextField(blank=True, null=True)
+    owner = models.ForeignKey('users.User', on_delete=models.CASCADE, null=True, blank=True)
+    time_limit = models.IntegerField(default=0, help_text="Лимит времени в минутах (0 - без лимита)")
+    passing_score = models.IntegerField(default=70, help_text="Процент для успешной сдачи")
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Test for {self.material.title}"
 
 
+class Question(models.Model):
+    QUESTION_TYPES = [
+        ('text', 'Текстовый вопрос'),
+        ('text_image', 'Текст с изображением'),
+        ('text_audio', 'Текст с аудио'),
+        ('all', 'Текст, изображение и аудио'),
+    ]
+
+    testing = models.ForeignKey(Testing, on_delete=models.CASCADE, related_name='questions')
+    question_type = models.CharField(max_length=15, choices=QUESTION_TYPES, default='text')
+    text = models.TextField(help_text="Текст вопроса")  # Always required
+    image = models.ImageField(upload_to='questions/images/', blank=True, null=True)
+    audio = models.FileField(upload_to='questions/audio/', blank=True, null=True)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'created_at']
+
+    def __str__(self):
+        return f"Q{self.order}: {self.text[:50]}..."
+
+    def clean(self):
+        """Validate that required media fields are present based on question type"""
+        from django.core.exceptions import ValidationError
+
+        if self.question_type in ['text_image', 'all'] and not self.image:
+            raise ValidationError({'image': 'Изображение обязательно для выбранного типа вопроса'})
+
+        if self.question_type in ['text_audio', 'all'] and not self.audio:
+            raise ValidationError({'audio': 'Аудио файл обязателен для выбранного типа вопроса'})
+
+
+class Answer(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers')
+    text = models.CharField(max_length=500)
+    is_correct = models.BooleanField(default=False)
+    order = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.text[:50]}... ({'✓' if self.is_correct else '✗'})"
+
+
 class TestResult(models.Model):  # Результаты прохождения тестов
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='test_results', null=True, blank=True)
-    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='results')
+    test = models.ForeignKey(Testing, on_delete=models.CASCADE, related_name='results')
     answers = models.JSONField()  # Ответы пользователя: {"question1": "A", ...}
     score = models.FloatField()  # Процент правильных (0-100)
     passed = models.BooleanField(default=False)  # Пройден ли

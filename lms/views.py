@@ -12,8 +12,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .forms import CourseForm
-from .models import Course, Material, Test, TestResult, Enrollment, User
-from .serializers import CourseSerializer, MaterialSerializer, TestSerializer, TestResultSerializer, \
+from .models import Course, Material, Testing, TestResult, Enrollment, User
+from .serializers import CourseSerializer, MaterialSerializer, TestingSerializer, TestResultSerializer, \
     EnrollmentSerializer, CourseListSerializer
 from .permissions import IsTeacherOrAdmin, IsCourseOwnerOrAdmin, IsStudentOrSubscribed
 
@@ -75,7 +75,7 @@ class CourseDetailView(LoginRequiredMixin, TemplateView):
         materials_count = course.materials.count()
         tests_count = course.materials.filter(test__isnull=False).count()
         materials = course.materials.all()
-        tests = Test.objects.filter(material__course=course).distinct()
+        tests = Testing.objects.filter(material__course=course).distinct()
 
         context.update({
             'course': course,
@@ -200,7 +200,7 @@ class CourseListView(TemplateView):
             'serialized_courses': serializer.data,  # For diploma requirements
             'total_courses': Course.objects.count(),
             'total_materials': Material.objects.count(),
-            'total_tests': Test.objects.count(),
+            'total_tests': Testing.objects.count(),
             'total_teachers': User.objects.filter(role='teacher').count(),
             'total_enrollments': Enrollment.objects.count(),
             'search_query': search_query,
@@ -341,23 +341,24 @@ class MaterialDetailView(LoginRequiredMixin, TemplateView):
         can_edit = is_owner or is_course_owner
 
         # Get test if exists
-        test = None
+        testing = None
         try:
-            test = material.test
-        except Test.DoesNotExist:
+            test = material.testing
+        except Testing.DoesNotExist:
             pass
 
         # Use serializer for data
         material_serializer = MaterialSerializer(material, context={'request': self.request})
-        test_serializer = TestSerializer(test, context={'request': self.request}) if test else None
+        test_serializer = TestingSerializer(testing, context={'request': self.request}) \
+            if testing else None
 
         context.update({
             'material': material,
-            'test': test,
+            'test': testing,
             'is_owner': is_owner,
             'is_course_owner': is_course_owner,
             'can_edit': can_edit,
-            'has_test': test is not None,
+            'has_test': testing is not None,
             'serialized_material': material_serializer.data,
             'serialized_test': test_serializer.data if test_serializer else None,
         })
@@ -557,8 +558,8 @@ class MaterialDeleteView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
 
 class TestViewSet(viewsets.ModelViewSet):
-    queryset = Test.objects.all()
-    serializer_class = TestSerializer
+    queryset = Testing.objects.all()
+    serializer_class = TestingSerializer
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -636,7 +637,7 @@ class SubmitTestView(APIView):
 
     def post(self, request, test_id):
         try:
-            test = Test.objects.get(id=test_id)
+            test = Testing.objects.get(id=test_id)
             if not Enrollment.objects.filter(user=request.user, course=test.material.course).exists():
                 return Response({"error": "Not enrolled in this course."}, status=403)
 
@@ -652,9 +653,10 @@ class SubmitTestView(APIView):
             answers = request.data.get('answers', {})
             score = calculate_score(test.questions, answers)
             passed = score >= 70
-            TestResult.objects.create(user=request.user, test=test, answers=answers, score=score, passed=passed)
+            TestResult.objects.create(user=request.user, test=test, answers=answers,
+                                      score=score, passed=passed)
             return Response({"score": score, "passed": passed}, status=201)
-        except Test.DoesNotExist:
+        except Testing.DoesNotExist:
             return Response({"error": "Test not found."}, status=404)
 
 

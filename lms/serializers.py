@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Material, Test, TestResult, Enrollment
+from .models import Course, Material, Testing, TestResult, Enrollment
 
 
 class MaterialSerializer(serializers.ModelSerializer):
@@ -10,7 +10,7 @@ class MaterialSerializer(serializers.ModelSerializer):
         model = Material
         fields = '__all__'
 
-class TestSerializer(serializers.ModelSerializer):
+class TestingSerializer(serializers.ModelSerializer):
 
     def validate_questions(self, value):
         if not isinstance(value, list):
@@ -21,7 +21,7 @@ class TestSerializer(serializers.ModelSerializer):
         return value
 
     class Meta:
-        model = Test
+        model = Testing
         fields = '__all__'
 
 class TestResultSerializer(serializers.ModelSerializer):
@@ -60,7 +60,7 @@ class CourseListSerializer(serializers.ModelSerializer):
         return obj.materials.count()
 
     def get_tests_count(self, obj):
-        return obj.materials.filter(test__isnull=False).count()
+        return obj.materials.filter(testing__isnull=False).count()
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):

@@ -27,7 +27,7 @@ class User(AbstractUser):
         max_length=100,
         verbose_name="Имя",
         help_text="Укажите своё имя",
-        default="Test",
+        default="Ученик",
     )
     email = models.EmailField(
         unique=True,

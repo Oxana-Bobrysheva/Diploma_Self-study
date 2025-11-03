@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Material, Test, TestResult
+from .models import Course, Material, Testing, TestResult
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
@@ -17,8 +17,8 @@ class MaterialAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)  # Prevent editing created_at
     ordering = ('course', 'id')  # Group by course, then ID
 
-@admin.register(Test)
-class TestAdmin(admin.ModelAdmin):
+@admin.register(Testing)
+class TestingAdmin(admin.ModelAdmin):
     list_display = ('id', 'material', 'owner', 'created_at')  # Shows linked material
     search_fields = ('material__title',)  # Search via material title (uses related field lookup)
     list_filter = ('owner', 'created_at')  # Filter by owner/date
