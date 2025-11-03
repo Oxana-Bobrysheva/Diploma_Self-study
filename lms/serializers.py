@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Material, Testing, TestResult, Enrollment, Answer, Question
+from .models import Course, Material, Testing, Enrollment, Answer, Question
 
 
 class MaterialSerializer(serializers.ModelSerializer):
@@ -8,12 +8,6 @@ class MaterialSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Material
-        fields = '__all__'
-
-
-class TestResultSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TestResult
         fields = '__all__'
 
 

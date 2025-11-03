@@ -1,11 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db import models
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse_lazy
-from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView
+from django.views import View
+from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView, DetailView
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -13,9 +13,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .forms import CourseForm
-from .models import Course, Material, Testing, TestResult, Enrollment, User, Question, Answer
-from .serializers import CourseSerializer, MaterialSerializer, TestingSerializer, TestResultSerializer, \
-    EnrollmentSerializer, CourseListSerializer
+from .models import Course, Material, Testing, Enrollment, User, Question, Answer, TestAttempt
+from .serializers import (CourseSerializer, MaterialSerializer, TestingSerializer,
+                          EnrollmentSerializer, CourseListSerializer, QuestionSerializer)
 from .permissions import IsTeacherOrAdmin, IsCourseOwnerOrAdmin, IsStudentOrSubscribed
 
 
@@ -102,7 +102,7 @@ class CourseDetailView(LoginRequiredMixin, TemplateView):
             ).exists()
 
             if user_enrolled:
-                materials = course.materials.all().prefetch_related('test')
+                materials = course.materials.all().prefetch_related('testing')
                 context.update({
                     'user_enrolled': True,
                     'materials': materials,
@@ -189,7 +189,7 @@ class CourseListView(TemplateView):
         # Annotate courses (same as before)
         courses = courses.annotate(
             materials_count=Count('materials'),
-            tests_count=Count('materials__test')
+            tests_count=Count('materials__testing')
         )
 
         # ✅ USE YOUR NEW SERIALIZER
@@ -571,15 +571,6 @@ class TestViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
 
-class TestResultViewSet(viewsets.ModelViewSet):
-    queryset = TestResult.objects.all()
-    serializer_class = TestResultSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
-
-
 class MyCoursesView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -595,7 +586,7 @@ class MyCoursesView(APIView):
                 status=status.HTTP_200_OK
             )
         else:
-            enrollments = Enrollment.objects.filter(user=request.user).select_related('course').prefetch_related(
+            enrollments = Enrollment.objects.filter(student=request.user).select_related('course').prefetch_related(
                 'course__materials')
             print("Student enrollments found:", enrollments.count())
             courses = [enrollment.course for enrollment in enrollments]
@@ -614,7 +605,7 @@ class EnrollCourseView(APIView):
         try:
             course = Course.objects.get(id=course_id)
             enrollment, created = Enrollment.objects.get_or_create(
-                user=request.user,
+                user=request.student,
                 course=course
             )
             if created:
@@ -631,34 +622,6 @@ class EnrollCourseView(APIView):
                 )
         except Course.DoesNotExist:
             return Response({"error": "Курс не найден."}, status=status.HTTP_404_NOT_FOUND)
-
-
-class SubmitTestView(APIView):
-    permission_classes = [IsAuthenticated, IsStudentOrSubscribed]
-
-    def post(self, request, test_id):
-        try:
-            test = Testing.objects.get(id=test_id)
-            if not Enrollment.objects.filter(user=request.user, course=test.material.course).exists():
-                return Response({"error": "Not enrolled in this course."}, status=403)
-
-            # Простая функция для расчета баллов
-            def calculate_score(questions, answers):
-                correct = 0
-                total = len(questions)
-                for i, q in enumerate(questions):
-                    if answers.get(str(i)) == q['correct']:
-                        correct += 1
-                return (correct / total) * 100 if total > 0 else 0
-
-            answers = request.data.get('answers', {})
-            score = calculate_score(test.questions, answers)
-            passed = score >= 70
-            TestResult.objects.create(user=request.user, test=test, answers=answers,
-                                      score=score, passed=passed)
-            return Response({"score": score, "passed": passed}, status=201)
-        except Testing.DoesNotExist:
-            return Response({"error": "Test not found."}, status=404)
 
 
 class TestingCreateView(CreateView):
@@ -856,7 +819,7 @@ class QuestionUpdateView(UpdateView):
     fields = ['question_type', 'text', 'image', 'audio', 'order']
 
     def get_success_url(self):
-        return reverse_lazy('testing-detail', kwargs={'pk': self.object.testing.id})
+        return reverse_lazy('testing-detail', kwargs={'testing_id': self.object.testing.id})
 
 
 class QuestionDeleteView(DeleteView):
@@ -916,7 +879,7 @@ def enroll_course_template(request, course_id):
 
     # Check if already enrolled
     enrollment, created = Enrollment.objects.get_or_create(
-        user=request.user,
+        student=request.user,
         course=course
     )
 
@@ -925,7 +888,7 @@ def enroll_course_template(request, course_id):
     else:
         messages.info(request, f'You are already enrolled in {course.title}')
 
-    return redirect('course_detail_template', course_id=course_id)
+    return redirect('course-detail', course_id=course_id)
 
 
 @login_required
@@ -1028,3 +991,29 @@ class TestSubmitView(View):
         )
 
         return redirect('test_result', attempt_id=test_attempt.id)
+
+class TestResultView(DetailView):
+    model = TestAttempt
+    template_name = 'lms/test_result.html'
+    context_object_name = 'attempt'
+    pk_url_kwarg = 'attempt_id'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['testing'] = self.object.testing
+        return context
+
+class TestingViewSet(viewsets.ModelViewSet):
+    queryset = Testing.objects.all()
+    serializer_class = TestingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer  # You'll need to create this
+    permission_classes = [permissions.IsAuthenticated]
+
+class EnrollmentViewSet(viewsets.ModelViewSet):
+    queryset = Enrollment.objects.all()
+    serializer_class = EnrollmentSerializer
+    permission_classes = [permissions.IsAuthenticated]

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Material, Testing, TestResult
+from .models import Course, Material, Testing
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
@@ -25,10 +25,3 @@ class TestingAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)  # Prevent editing created_at
     ordering = ('-created_at',)
 
-@admin.register(TestResult)
-class TestResultAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'test', 'score', 'passed', 'completed_at')  # Key result info
-    search_fields = ('user__username', 'test__material__title')  # Search by user or material
-    list_filter = ('passed', 'completed_at')  # Filter by pass status/date
-    readonly_fields = ('completed_at',)  # Prevent editing completed_at
-    ordering = ('-completed_at',)

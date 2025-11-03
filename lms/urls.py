@@ -1,17 +1,27 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 
 from . import views
-from .views import CourseViewSet, MaterialViewSet
+from .views import (CourseViewSet, MaterialViewSet, TestResultView, TestingViewSet,
+                    QuestionViewSet, EnrollmentViewSet)
+
+router = DefaultRouter()
+router.register(r'tests', TestingViewSet)
+router.register(r'questions', QuestionViewSet)
+router.register(r'enrollments', EnrollmentViewSet)
 
 urlpatterns = [
     # API URLs (for diploma requirements)
     path('api/courses/', CourseViewSet.as_view({'get': 'list', 'post': 'create'}),
          name='api-course-list'),
+    path('api/courses/<int:pk>/', views.CourseViewSet.as_view({'get': 'retrieve'}), name='api-course-detail'),
     path('api/materials/', MaterialViewSet.as_view({'get': 'list'}), name='api-material-list'),
     path('api/courses/<int:pk>/edit/', CourseViewSet.as_view({'patch': 'edit'}),
          name='api-course-edit'),
     path('api/courses/<int:pk>/add-material/', CourseViewSet.as_view({'post': 'add_material'}),
          name='api-course-add-material'),
+    path('api/enroll/', views.EnrollCourseView.as_view(), name='api-enroll'),
+    path('api/my-courses/', views.MyCoursesView.as_view(), name='api-my-courses'),
 
     # Dashboard management URLs
     path('authors/', views.authors, name='authors'),
@@ -47,6 +57,9 @@ urlpatterns = [
          name='testing-detail'),
     path('testing/<int:testing_id>/update/', views.TestingUpdateView.as_view(),
          name='testing-update'),
+    path('testing/<int:pk>/take/', views.TestTakeView.as_view(), name='test_take'),
+    path('testing/<int:pk>/submit/', views.TestSubmitView.as_view(), name='test_submit'),
+    path('attempt/<int:attempt_id>/result/', TestResultView.as_view(), name='test_result'),
 
     # Question management URLs
     path('testing/<int:testing_id>/questions/create/', views.QuestionCreateView.as_view(),
@@ -55,9 +68,4 @@ urlpatterns = [
          name='update_question'),
     path('question/<int:pk>/delete/', views.QuestionDeleteView.as_view(),
          name='delete_question'),
-
-
-    # Swagger documentation
-    # path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]
-

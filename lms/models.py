@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -171,18 +170,6 @@ class Answer(models.Model):
         return f"{self.text[:50]}... ({'✓' if self.is_correct else '✗'})"
 
 
-class TestResult(models.Model):  # Результаты прохождения тестов
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='test_results', null=True, blank=True)
-    test = models.ForeignKey(Testing, on_delete=models.CASCADE, related_name='results')
-    answers = models.JSONField()  # Ответы пользователя: {"question1": "A", ...}
-    score = models.FloatField()  # Процент правильных (0-100)
-    passed = models.BooleanField(default=False)  # Пройден ли
-    completed_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.username} - {self.test.material.title}: {self.score}%"
-
-
 class Enrollment(models.Model):
     student = models.ForeignKey('users.User', on_delete=models.CASCADE)
     course = models.ForeignKey('Course', on_delete=models.CASCADE)
@@ -198,3 +185,18 @@ class Enrollment(models.Model):
     def __str__(self):
         return f"{self.student.email} записан на {self.course.title}"
 
+
+class TestAttempt(models.Model):
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    testing = models.ForeignKey(Testing, on_delete=models.CASCADE)
+    score = models.FloatField(help_text="Percentage score")
+    passed = models.BooleanField(default=False)
+    total_questions = models.IntegerField()
+    correct_answers = models.IntegerField()
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-completed_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.testing.title} - {self.score}%"
