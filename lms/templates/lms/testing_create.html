@@ -6,8 +6,8 @@
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'course_list' %}">Курсы</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'course-detail' material.course.id %}">{{ material.course.title }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'material-detail' material.id %}">{{ material.title }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'course-detail' course_id %}">{{ material.course.title }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'material-detail' material_id %}">{{ material.title }}</a></li>
             <li class="breadcrumb-item active">Создание теста</li>
         </ol>
     </nav>
@@ -21,7 +21,7 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                    <form method="post" enctype="multipart/form-data" id="testForm">
+                    <form method="post" enctype="multipart/form-data" id="testing-form">
                         {% csrf_token %}
 
                         <!-- Test Basic Info -->
@@ -84,7 +84,7 @@
                             <button type="submit" class="btn btn-success">
                                 <i class="fas fa-save me-1"></i>Создать тест
                             </button>
-                            <a href="{% url 'material-detail' material.id %}" class="btn btn-secondary">
+                            <a href="{% url 'material-detail' material_id %}" class="btn btn-secondary">
                                 <i class="fas fa-times me-1"></i>Отмена
                             </a>
                         </div>

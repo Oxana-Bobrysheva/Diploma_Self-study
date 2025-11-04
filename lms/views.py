@@ -18,7 +18,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .forms import CourseForm
+from .forms import CourseForm, TestingForm
 from .models import (
     Course,
     Material,
@@ -705,32 +705,66 @@ class EnrollCourseView(APIView):
 
 class TestingCreateView(CreateView):
     model = Testing
+    form_class = TestingForm
     template_name = "lms/testing_create.html"
-    fields = ["title", "description", "time_limit", "passing_score"]
+
+
+    def dispatch(self, request, *args, **kwargs):
+        from django.shortcuts import get_object_or_404
+        from lms.models import Material
+
+        self.material_id = self.kwargs["material_id"]
+        self.material = get_object_or_404(Material.objects.select_related('course'), id=self.material_id)
+        print(f"DEBUG: Material loaded - {self.material.title}")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['material_id'] = self.material_id
+        context['course_id'] = self.material.course.id
+        context['material'] = self.material
+
+        from lms.models import Question
+        context['question_types'] = Question.QUESTION_TYPES
+        return context
+
+    def get_success_url(self):
+        from django.urls import reverse
+        return reverse('material-detail', kwargs={'material_id': self.material_id})
 
     def form_valid(self, form):
-        # Set the material and owner
-        form.instance.material_id = self.kwargs["material_id"]
+        print("DEBUG: Form is valid")
+        print(f"DEBUG: Form data - {form.cleaned_data}")
+
+        form.instance.material_id = self.material_id
         form.instance.owner = self.request.user
 
-        # Save the testing object first
+        # Save the testing object
         response = super().form_valid(form)
         testing = self.object
+        print(f"DEBUG: Testing object created with ID: {testing.id}")
 
         # Process questions and answers
         self.process_questions(testing)
 
+        print("DEBUG: Redirecting to success URL")
         return response
 
+    def form_invalid(self, form):
+        print("DEBUG: Form is INVALID")
+        print(f"DEBUG: Form errors: {form.errors}")
+        print(f"DEBUG: POST data: {self.request.POST}")
+        return super().form_invalid(form)
+
     def process_questions(self, testing):
-        # Get all question data from request
         question_count = int(self.request.POST.get("question_count", 0))
+        print(f"DEBUG: Processing {question_count} questions")
 
         for i in range(1, question_count + 1):
             question_key = f"question_{i}"
             question_text = self.request.POST.get(f"{question_key}_text")
+            print(f"DEBUG: Question {i} text: {question_text}")
 
-            # Only process if question text exists
             if question_text:
                 question = Question.objects.create(
                     testing=testing,
@@ -738,38 +772,33 @@ class TestingCreateView(CreateView):
                     text=question_text,
                     order=i,
                 )
+                print(f"DEBUG: Created question {i}")
 
                 # Handle file uploads
                 if f"{question_key}_image" in self.request.FILES:
                     question.image = self.request.FILES[f"{question_key}_image"]
+                    print(f"DEBUG: Added image to question {i}")
 
                 if f"{question_key}_audio" in self.request.FILES:
                     question.audio = self.request.FILES[f"{question_key}_audio"]
+                    print(f"DEBUG: Added audio to question {i}")
 
                 question.save()
-
-                # Process answers for this question
                 self.process_answers(question, i)
 
     def process_answers(self, question, question_index):
-        answer_count = int(
-            self.request.POST.get(f"question_{question_index}_answer_count", 0)
-        )
+        answer_count = int(self.request.POST.get(f"question_{question_index}_answer_count", 0))
+        print(f"DEBUG: Processing {answer_count} answers for question {question_index}")
 
         for j in range(answer_count):
-            answer_text = self.request.POST.get(
-                f"question_{question_index}_answer_{j}_text"
-            )
-            is_correct = (
-                self.request.POST.get(f"question_{question_index}_answer_{j}_correct")
-                == "on"
-            )
+            answer_text = self.request.POST.get(f"question_{question_index}_answer_{j}_text")
+            is_correct = self.request.POST.get(f"question_{question_index}_answer_{j}_correct") == "on"
+            print(f"DEBUG: Answer {j} - text: {answer_text}, correct: {is_correct}")
 
             if answer_text:
                 Answer.objects.create(
                     question=question, text=answer_text, is_correct=is_correct, order=j
                 )
-
 
 class TestingDetailView(LoginRequiredMixin, TemplateView):
     template_name = "lms/testing_detail.html"
