@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'authors' %}">Авторы</a></li>
+            <li class="breadcrumb-item active">Курсы автора: {{ teacher.username }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chalkboard-teacher me-2"></i>
+                        Курсы автора: {{ teacher.username }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if courses %}
+                        <div class="row">
+                            {% for course in courses %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    {% if course.preview %}
+                                    <img src="{{ course.preview.url }}" class="card-img-top" alt="{{ course.title }}" style="height: 200px; object-fit: cover;">
+                                    {% else %}
+                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <i class="fas fa-book fa-3x text-muted"></i>
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ course.title }}</h5>
+                                        <p class="card-text">{{ course.description|truncatewords:20 }}</p>
+
+                                        <div class="mb-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-users me-1"></i>Студентов: {{ course.students.count }}
+                                            </small>
+                                            <br>
+                                            <small class="text-muted">
+                                                <i class="fas fa-book me-1"></i>Материалов: {{ course.materials.count }}
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-footer">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-success fw-bold">
+                                                {% if course.price > 0 %}
+                                                    {{ course.price }} ₽
+                                                {% else %}
+                                                    Бесплатно
+                                                {% endif %}
+                                            </span>
+                                            <a href="{% url 'course-detail' course.id %}" class="btn btn-custom btn-sm">
+                                                Подробнее
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">У этого автора пока нет курсов</h5>
+                            <p class="text-muted">Курсы появятся здесь, когда автор их создаст.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

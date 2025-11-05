@@ -1,0 +1,157 @@
+
+:root {
+    --primary-green: #28a745;
+    --dark-green: #218838;
+    --pale-yellow: #fff9e6; /* Pale yellow for body */
+    --pale-orange: #fff3e0; /* Pale orange for nav/footer */
+    --warm-orange: #ff9800;
+}
+
+body {
+    background-color: var(--pale-yellow); /* Pale yellow body */
+    font-family: 'Arial', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-custom {
+    background-color: var(--pale-orange) !important; /* Pale orange nav */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-bottom: 5px solid var(--warm-orange);
+}
+
+.btn-custom {
+    background-color: var(--primary-green);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    font-weight: bold;
+    padding: 8px 20px;
+    margin: 0 5px;
+    transition: all 0.3s ease;
+}
+
+.btn-custom:hover {
+    background-color: var(--dark-green);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.nav-link-custom {
+    color: #333 !important;
+    font-weight: 500;
+    margin: 0 10px;
+    border-radius: 20px;
+    padding: 8px 20px !important;
+    transition: all 0.3s ease;
+}
+
+.nav-link-custom:hover {
+    background-color: var(--primary-green);
+    color: white !important;
+    transform: translateY(-2px);
+}
+
+.stats-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: none;
+    transition: transform 0.3s ease;
+    border: 2px solid var(--warm-orange);
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.footer {
+    background-color: var(--pale-orange) !important; /* Pale orange footer */
+    color: #333;
+    margin-top: auto;
+    border-top: 5px solid var(--warm-orange);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    color: #333 !important;
+}
+
+.main-content {
+    flex: 1;
+    background-color: var(--pale-yellow); /* Ensure content area is pale yellow */
+}
+
+/* Logo styling */
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-img {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+/* Form styling */
+input, select, textarea {
+    width: 100%;
+    padding: 10px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    outline: none;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 12px 15px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    outline: none;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-left: none;
+}
+
+/* Make file input look better */
+.form-control[type="file"] {
+    padding: 8px 15px;
+}
+
+/* Required field indicator */
+.form-label:has(+ [required])::after {
+    content: " *";
+    color: #dc3545;
+}
