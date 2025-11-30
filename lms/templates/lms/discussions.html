@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4">Community Discussions</h1>
+        <p class="lead">Join the conversation with fellow learners and instructors</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card stats-card">
+                <div class="card-body text-center p-5">
+                    <i class="fas fa-comments fa-4x text-muted mb-4"></i>
+                    <h3>Discussions Coming Soon!</h3>
+                    <p class="text-muted mb-4">
+                        We're building an amazing community space where you can ask questions, 
+                        share insights, and connect with other learners.
+                    </p>
+                    
+                    {% if user.is_authenticated %}
+                    <div class="alert alert-info">
+                        <strong>Note for your diploma:</strong> This demonstrates navigation structure and access control.
+                        Full discussion functionality can be implemented as a future enhancement.
+                    </div>
+                    {% endif %}
+                    
+                    <a href="{% url 'course_list' %}" class="btn btn-custom">
+                        Browse Courses While You Wait
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

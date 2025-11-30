@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Course Header - Different for Teachers vs Students -->
+    <div class="card stats-card mb-4">
+        <div class="card-header {% if show_teacher_tools %}d-flex justify-content-between align-items-center{% endif %}">
+            {% if show_teacher_tools %}
+                <h4><i class="fas fa-chalkboard-teacher me-2"></i>{{ course.title }} - Управление</h4>
+                <div>
+                    <a href="{% url 'course-edit-template' course.id %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit me-1"></i>Редактировать</a>
+                    <form action="{% url 'course-delete-template' course.id %}" method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm"
+                                onclick="return confirm('Вы уверены, что хотите удалить курс \'{{ course.title }}\'?')">
+                            <i class="fas fa-trash me-1"></i>Удалить
+                        </button>
+                    </form>
+
+                </div>
+            {% else %}
+                <h4><i class="fas fa-book me-2"></i>{{ course.title }}</h4>
+            {% endif %}
+        </div>
+
+        <div class="card-body">
+            {% if course.preview %}
+                <img src="{{ course.preview.url }}" class="img-fluid rounded mb-3" alt="{{ course.title }}" style="max-height: 300px; width: 100%; object-fit: cover;">
+            {% endif %}
+
+            <h5>Описание курса</h5>
+            <p>{{ course.description|default:"Описание отсутствует" }}</p>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <strong>Цена:</strong> {{ course.price }} руб.
+                </div>
+                <div class="col-md-4">
+                    <strong>Преподаватель:</strong> {{ course.owner.name }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Материалов:</strong> {{ materials_count }}
+                </div>
+            </div>
+
+            <!-- Teacher Quick Actions -->
+            {% if show_teacher_tools %}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <a href="{% url 'material-create' course.id %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить материал
+                    </a>
+                </div>
+
+            </div>
+            {% endif %}
+
+            <!-- Enrollment Button for Students -->
+            {% if not is_enrolled and not show_teacher_tools and user.is_authenticated %}
+                <form method="post" action="{% url 'enroll_course_template' course.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-custom btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Записаться на курс
+                    </button>
+                </form>
+            {% elif is_enrolled %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>Вы записаны на этот курс
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Teacher Management Sections -->
+    {% if show_teacher_tools %}
+        <!-- Students List for Teacher -->
+        <div class="card stats-card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-users me-2"></i>Студенты курса</h5>
+                <span class="badge bg-success">{{ enrollments.count }}</span>
+            </div>
+            <div class="card-body">
+                {% if enrollments %}
+                    <div class="list-group">
+                        {% for enrollment in enrollments %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ enrollment.student.name }}</h6>
+                                    <small class="text-muted">{{ enrollment.student.email }}</small>
+                                    <br>
+                                    <small>Прогресс: <strong>{{ enrollment.progress }}%</strong></small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-info" disabled title="Скоро будет доступно">
+                                    <i class="fas fa-chart-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">На курс еще никто не записался.</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Materials Section - For Everyone -->
+    <div class="card stats-card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-book me-2"></i>Материалы курса</h5>
+        </div>
+        <div class="card-body">
+            {% if materials %}
+                <div class="list-group">
+                    {% for material in materials %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <!-- CHANGED: Make material title clickable -->
+                                <h6 class="mb-1">
+                                    <a href="{% url 'material-detail' material.id %}" class="text-decoration-none">
+                                        {{ material.title }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">
+                                    {% if material.illustration %}📷 {% endif %}
+                                    {{ material.content|truncatewords:20 }}
+                                </small>
+                                <!-- CHANGED: Updated test indicator -->
+                                {% if material.test %}
+                                    <br><small class="text-success">✅ Есть тест</small>
+                                {% else %}
+                                    <br><small class="text-muted">⭕ Без теста</small>
+                                {% endif %}
+                            </div>
+                            {% if show_teacher_tools %}
+                            <div>
+                                <!-- CHANGED: Make edit button active and link to material detail -->
+                                <a href="{% url 'material-detail' material.id %}" class="btn btn-sm btn-outline-warning me-1" title="Редактировать материал">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-danger" disabled title="Скоро будет доступно">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            {% elif is_enrolled %}
+                            <div>
+                                <!-- CHANGED: Make "Изучать" button link to material detail -->
+                                <a href="{% url 'material-detail' material.id %}" class="btn btn-sm btn-custom">Изучать</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">Материалы пока не добавлены.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,25 +1,49 @@
-from django.conf import settings
-from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenRefreshView
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from rest_framework import permissions
 
-from users.views import CustomTokenObtainPairView
-from django.http import HttpResponse
+from lms.views import dashboard
+from users.views import register
+from django.conf import settings
+from django.conf.urls.static import static
 
-def home(request):
-    return HttpResponse("""
-    Welcome to the LMS API!<br>
-    <a href="http://localhost:3000">Go to Frontend (React)</a><br>
-    API endpoints: /api/ (e.g., /api/courses/)
-    """)
+
+# Swagger/OpenAPI configuration
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Self-Study Platform API",
+        default_version='v1',
+        description="API documentation for Self-Study Platform",
+        terms_of_service="https://www.google.com/policies/terms/",
+        contact=openapi.Contact(email="contact@platform.local"),
+        license=openapi.License(name="BSD License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
-    path('', home),
     path('admin/', admin.site.urls),
-    path('api/', include('lms.urls')),
-    path('api/users/', include('users.urls')),
-    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # API Documentation - ADD THESE LINES:
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+
+    # Optional: JSON schema
+    path('swagger.json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    path('login/', auth_views.LoginView.as_view(
+        template_name='registration/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('register/', register, name='register'),
+
+    # App urls
+    path('', dashboard, name='dashboard'),  # Main page
+    path('lms/', include('lms.urls')),  # Your LMS app URLs
+    path('users/', include('users.urls')),  # Your users app URLs
 ]
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

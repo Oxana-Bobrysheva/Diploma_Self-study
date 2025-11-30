@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4">Our Expert Authors</h1>
+        <p class="lead">Learn from experienced instructors and industry professionals</p>
+    </div>
+
+    <div class="row">
+        {% for teacher in teachers %}
+        <div class="col-md-4 mb-4">
+            <div class="card stats-card h-100">
+                <div class="card-body text-center">
+                    {% if teacher.avatar %}
+                    <img src="{{ teacher.avatar.url }}" alt="{{ teacher.name }}" 
+                         class="rounded-circle mb-3" width="200" height="200" style="object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-3" 
+                         style="width: 100px; height: 100px;">
+                        <span class="text-white h4">{{ teacher.name|first|upper }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <h5 class="card-title">
+                        {% if teacher.name %}{{ teacher.name }}{% else %}{{ teacher.email }}{% endif %}
+                    </h5>
+                    
+                    {% if teacher.city %}
+                    <p class="text-muted mb-2">
+                        <i class="fas fa-map-marker-alt"></i> {{ teacher.city }}
+                    </p>
+                    {% endif %}
+                    
+                    <!-- Show teacher's courses count -->
+                    <p class="text-success">
+                        <strong>{{ teacher.courses_created.count }} courses</strong>
+                    </p>
+                    
+                    <a href="{% url 'author_courses' teacher.id %}" class="btn btn-custom btn-sm">
+                        View Courses
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center">
+            <div class="alert alert-info">
+                <h4>No authors yet</h4>
+                <p>Be the first to create a course!</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
